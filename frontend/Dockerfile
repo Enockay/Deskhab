@@ -21,6 +21,6 @@ COPY --from=build /app/dist ./
 # Simple nginx config for SPA (serves index.html for all routes)
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 3000
+EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
