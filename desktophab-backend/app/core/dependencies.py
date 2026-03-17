@@ -1,36 +1,80 @@
-from fastapi import Depends, HTTPException, status
+"""FastAPI dependencies: DB sessions, current user extraction, admin guards."""
+
+from typing import AsyncGenerator
+
+from fastapi import Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
-import jwt
 
-from app.core.config import settings
-from app.db.session import get_db
+from app.core.security import decode_access_token
+from app.db.session import AsyncSessionLocal
+from app.db.models import User, AdminUser
+from app.services.user_service import UserService
+
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
-reusable_oauth2 = HTTPBearer(auto_error=False)
+# ─── DB session ───────────────────────────────────────────────────────────────
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
 
 
-async def get_db_session() -> AsyncSession:
-  async for session in get_db():
-    return session
-
+# ─── Current user from Bearer token ──────────────────────────────────────────
 
 async def get_current_user(
-  credentials: HTTPAuthorizationCredentials | None = Depends(reusable_oauth2),
-) -> dict:
-  if credentials is None:
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    if not credentials:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    token = credentials.credentials
+    try:
+        payload = decode_access_token(token)
+        user_id: str = payload.get("sub")
+        if not user_id:
+            raise ValueError("Missing subject")
+    except (JWTError, ValueError):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
 
-  token = credentials.credentials
-  try:
-    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-    sub = payload.get("sub")
-  except jwt.PyJWTError:
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    svc = UserService(db)
+    user = await svc.get_by_id(user_id)
+    if not user or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account inactive or not found")
+    return user
 
-  if sub is None:
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
 
-  # TODO: fetch real user from DB
-  return {"id": int(sub), "email": "demo@example.com"}
+async def get_current_admin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    if current_user.role not in ("admin", "manager"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+    return current_user
 
+
+# ─── Token from query param (renewal URL flow) ────────────────────────────────
+
+async def get_user_from_token_param(
+    token: str = Query(..., description="Access token from renewal URL"),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """
+    Used by the renewal web page: /renew-smartcalender/{user_id}?token=...
+    Validates the JWT passed as a query param.
+    """
+    try:
+        payload = decode_access_token(token)
+        user_id: str = payload.get("sub")
+    except (JWTError, Exception):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    svc = UserService(db)
+    user = await svc.get_by_id(user_id)
+    if not user or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User not found")
+    return user
