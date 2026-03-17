@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import visaLogo from '../assets/visa.svg'
 import mcLogo from '../assets/mc.svg'
 import amexLogo from '../assets/amex.svg'
 import discLogo from '../assets/disc.svg'
 import StepHeader from '../components/StepHeader'
+import { subscriptionApi } from '../lib/api'
 
 /* ── helpers ──────────────────────────────────────────────── */
 const formatCard = (v) =>
@@ -53,6 +54,8 @@ const plans = {
 /* ── component ─────────────────────────────────────────────── */
 export default function PaymentProcessing() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const email = searchParams.get('email') || ''
   const plan = plans['pro'] // default; swap with useSearchParams in production
 
   const [form, setForm] = useState({
@@ -65,6 +68,7 @@ export default function PaymentProcessing() {
   })
   const [errors, setErrors] = useState({})
   const [step, setStep] = useState('form') // 'form' | 'processing' | 'success'
+  const [formError, setFormError] = useState('')
 
   const set = (field, formatter) => (e) =>
     setForm((prev) => ({ ...prev, [field]: formatter ? formatter(e.target.value) : e.target.value }))
@@ -84,9 +88,22 @@ export default function PaymentProcessing() {
     const errs = validate()
     if (Object.keys(errs).length) { setErrors(errs); return }
     setErrors({})
+    setFormError('')
     setStep('processing')
-    await new Promise((r) => setTimeout(r, 2000))
-    setStep('success')
+    try {
+      if (!email) {
+        throw new Error('Missing email. Please restart the signup flow.')
+      }
+      const res = await subscriptionApi.startTrial({ email })
+      if (res?.checkout_url) {
+        window.location.href = res.checkout_url
+        return
+      }
+      setStep('success')
+    } catch (err) {
+      setFormError(err.message || 'Something went wrong starting your trial.')
+      setStep('form')
+    }
   }
 
   /* ── success screen ── */
@@ -217,6 +234,12 @@ export default function PaymentProcessing() {
               SSL secured
             </div>
           </div>
+
+          {formError && (
+            <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-xs text-red-200">
+              {formError}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
             <InputField label="Name on card" id="cardName" placeholder="Jane Doe"

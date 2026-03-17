@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class SubscriptionStatusResponse(BaseModel):
@@ -20,11 +20,19 @@ class SubscriptionDetail(BaseModel):
 
 class CreateCheckoutRequest(BaseModel):
     app_slug: str = "smartcalender"
+    email: EmailStr
 
 
 class CheckoutSessionResponse(BaseModel):
     checkout_url: str
-    session_id: str
+    session_id: str | None = None
+
+
+class RenewCheckoutRequest(BaseModel):
+    """Request body when renewing via special URL from the desktop app."""
+    user_slug: str
+    token: str
+    app_slug: str = "smartcalender"
 
 
 class RenewalURLResponse(BaseModel):

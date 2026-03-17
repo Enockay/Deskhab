@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import StepHeader from '../components/StepHeader'
+import { authApi } from '../lib/api'
 
 const InputField = ({ label, id, type = 'text', placeholder, value, onChange, error, autoComplete }) => (
   <div className="flex flex-col gap-1">
@@ -37,6 +38,7 @@ export default function CreateAccount() {
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [formError, setFormError] = useState('')
 
   const set = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }))
@@ -56,13 +58,21 @@ export default function CreateAccount() {
     const errs = validate()
     if (Object.keys(errs).length) { setErrors(errs); return }
     setErrors({})
+    setFormError('')
     setLoading(true)
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 1200))
+    try {
+      const res = await authApi.register({
+        email: form.email,
+        password: form.password,
+        remember_me: false,
+      })
+      // After we create the account we move into email verification step.
+      navigate(`/verify-email?email=${encodeURIComponent(form.email)}${res?.code ? `&code=${res.code}` : ''}`)
+    } catch (err) {
+      setFormError(err.message || 'Something went wrong creating your account.')
+    } finally {
     setLoading(false)
-    // After we create the account we always move into the payment step.
-    // The payment page will handle the “$0.00 today” messaging.
-    navigate('/payment')
+    }
   }
 
   return (
@@ -136,6 +146,12 @@ export default function CreateAccount() {
             <span className="text-xs text-gray-500">or with email</span>
             <div className="flex-1 h-px bg-white/10" />
           </div>
+
+          {formError && (
+            <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-xs text-red-200">
+              {formError}
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>

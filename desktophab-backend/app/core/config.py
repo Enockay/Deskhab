@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
 
+    # Email (Brevo)
+    BREVO_API_KEY: str | None = None
+    BREVO_SENDER_EMAIL: str = "no-reply@deskhab.com"
+    BREVO_SENDER_NAME: str = "DeskHab"
+
     # JWT
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
@@ -29,6 +34,11 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
     STRIPE_SMARTCALENDER_PRICE_ID: str = ""
+
+    # Paystack
+    PAYSTACK_SECRET_KEY: str | None = None
+    PAYSTACK_PUBLIC_KEY: str | None = None
+    PAYSTACK_CALLBACK_URL: str | None = None
 
     # Admin
     ADMIN_SECRET_KEY: str

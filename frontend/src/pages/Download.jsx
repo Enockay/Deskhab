@@ -1,15 +1,68 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import StepHeader from '../components/StepHeader'
+import { detectPlatform } from '../lib/os'
+
+const recommendedAnimStyles = `
+  @keyframes borderBreath {
+    0%, 100% {
+      box-shadow: 0 0 0 1px rgba(16,185,129,0.55),
+                  0 0 14px 2px rgba(16,185,129,0.25);
+    }
+    50% {
+      box-shadow: 0 0 0 1.5px rgba(16,185,129,0.95),
+                  0 0 30px 6px rgba(16,185,129,0.45);
+    }
+  }
+  @keyframes shimmerSweep {
+    0%   { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { transform: translateX(220%) skewX(-18deg); opacity: 0; }
+  }
+  @keyframes floatUp {
+    0%, 100% { transform: translateY(0px); }
+    50%      { transform: translateY(-5px); }
+  }
+  @keyframes badgePing {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0.55); }
+    60%      { box-shadow: 0 0 0 5px rgba(52,211,153,0); }
+  }
+  @keyframes glowPulse {
+    0%, 100% { opacity: 0.35; }
+    50%      { opacity: 0.65; }
+  }
+  .rec-card {
+    animation: borderBreath 2.6s ease-in-out infinite, floatUp 3.4s ease-in-out infinite;
+  }
+  .rec-shimmer {
+    animation: shimmerSweep 3s ease-in-out infinite;
+    animation-delay: 0.8s;
+  }
+  .rec-glow {
+    animation: glowPulse 2.6s ease-in-out infinite;
+  }
+  .rec-badge {
+    animation: badgePing 2.6s ease-in-out infinite;
+  }
+`
 
 export default function Download() {
+  const [autoPlatform, setAutoPlatform] = useState('other')
+
+  useEffect(() => {
+    setAutoPlatform(detectPlatform())
+  }, [])
+
   const platforms = [
-    { label: 'macOS', tag: 'DMG', badge: 'Recommended', href: '#' },
-    { label: 'Windows', tag: 'EXE', badge: 'Most popular', href: '#' },
-    { label: 'Linux', tag: 'AppImage', badge: 'For power users', href: '#' },
+    { key: 'macos', label: 'macOS', tag: 'DMG', badge: 'Recommended', href: '#' },
+    { key: 'windows', label: 'Windows', tag: 'EXE', badge: 'Most popular', href: '#' },
+    { key: 'linux', label: 'Linux', tag: 'AppImage', badge: 'For power users', href: '#' },
   ]
 
   return (
     <div className="min-h-screen bg-[#0d0f14] flex items-center justify-center px-4 py-16">
+      <style>{recommendedAnimStyles}</style>
       <div className="relative w-full max-w-3xl">
         {/* Glow */}
         <div className="pointer-events-none absolute inset-0 -z-10">
@@ -33,27 +86,45 @@ export default function Download() {
 
           {/* Platform cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            {platforms.map(({ label, href, tag, badge }) => (
-              <a
-                key={label}
-                href={href}
-                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]
-                           px-5 py-5 flex flex-col items-center justify-between gap-2
-                           hover:border-emerald-400/80 hover:bg-emerald-500/5 transition-all duration-200"
-              >
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-radial-at-t from-emerald-500/20 via-transparent to-transparent transition-opacity" />
+            {platforms.map(({ key, label, href, tag, badge }) => {
+              const isRec = key === 'macos'
+              return (
+                <a
+                  key={key}
+                  href={href}
+                  className={`group relative overflow-hidden rounded-2xl border bg-white/[0.02]
+                             px-5 py-5 flex flex-col items-center justify-between gap-2 transition-all duration-200
+                             ${isRec
+                               ? 'rec-card border-emerald-400/80 bg-emerald-500/5'
+                               : 'border-white/10 hover:border-emerald-400/80 hover:bg-emerald-500/5'}`}
+                >
+                  {/* Always-on radial glow for recommended */}
+                  {isRec && (
+                    <div className="rec-glow absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.22)_0%,transparent_70%)]" />
+                  )}
 
-                <div className="relative flex flex-col items-center gap-2">
-                  <span className="inline-flex items-center gap-2 text-white font-semibold text-base">
-                    {label}
-                  </span>
-                  <span className="text-[11px] text-gray-400 uppercase tracking-[0.16em]">{tag}</span>
-                  <span className="mt-2 inline-flex items-center rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-200">
-                    {badge}
-                  </span>
-                </div>
-              </a>
-            ))}
+                  {/* Hover glow for non-recommended */}
+                  {!isRec && (
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-radial-at-t from-emerald-500/20 via-transparent to-transparent transition-opacity" />
+                  )}
+
+                  {/* Shimmer sweep — recommended only */}
+                  {isRec && (
+                    <div className="rec-shimmer absolute inset-y-0 w-16 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
+                  )}
+
+                  <div className="relative flex flex-col items-center gap-2">
+                    <span className="inline-flex items-center gap-2 text-white font-semibold text-base">
+                      {label}
+                    </span>
+                    <span className="text-[11px] text-gray-400 uppercase tracking-[0.16em]">{tag}</span>
+                    <span className={`mt-2 inline-flex items-center rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-200 ${isRec ? 'rec-badge' : ''}`}>
+                      {badge}
+                    </span>
+                  </div>
+                </a>
+              )
+            })}
           </div>
 
           {/* Trial + next steps */}

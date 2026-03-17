@@ -202,6 +202,19 @@ class RefreshToken(Base):
     )
 
 
+# ─── Email verification codes ──────────────────────────────────────────────────
+
+class EmailVerification(Base):
+    __tablename__ = "email_verifications"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email = Column(String(255), nullable=False, index=True)
+    code_hash = Column(String(128), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    consumed = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 # ─── Admin users ──────────────────────────────────────────────────────────────
 
 class AdminUser(Base):

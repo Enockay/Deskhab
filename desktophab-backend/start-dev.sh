@@ -14,8 +14,11 @@ fi
 echo ">>> Activating virtual environment..."
 source venv/bin/activate
 
-echo ">>> Installing Python dependencies..."
-pip install -r requirements.txt
+echo ">>> Installing Python dependencies (quiet)..."
+pip install -r requirements.txt -q >/dev/null 2>&1 || {
+  echo ">>> pip install failed (showing output):"
+  pip install -r requirements.txt
+}
 
 if [ -f ".env.example" ] && [ ! -f ".env" ]; then
   echo ">>> .env not found. Creating from .env.example..."

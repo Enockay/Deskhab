@@ -1,0 +1,64 @@
+const API_BASE_URL =
+  (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/+$/, '')
+
+async function apiFetch(path, options = {}) {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+    ...options,
+  })
+
+  if (!res.ok) {
+    let message = 'Request failed'
+    try {
+      const data = await res.json()
+      message = data.detail || data.error || JSON.stringify(data)
+    } catch {
+      message = await res.text()
+    }
+    throw new Error(message || `HTTP ${res.status}`)
+  }
+
+  if (res.status === 204) return null
+  return res.json()
+}
+
+export const authApi = {
+  async register({ email, password, remember_me }) {
+    return apiFetch('/v1/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, remember_me }),
+    })
+  },
+  async verifyEmail({ email, code }) {
+    return apiFetch('/v1/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    })
+  },
+}
+
+export const subscriptionApi = {
+  async startTrial({ email }) {
+    return apiFetch('/v1/subscription/checkout', {
+      method: 'POST',
+      body: JSON.stringify({ app_slug: 'smartcalender', email }),
+    })
+  },
+  async verify(reference) {
+    return apiFetch(`/v1/subscription/verify?reference=${encodeURIComponent(reference)}`)
+  },
+  async renew({ userSlug, token }) {
+    return apiFetch('/v1/subscription/renew', {
+      method: 'POST',
+      body: JSON.stringify({
+        user_slug: userSlug,
+        token,
+        app_slug: 'smartcalender',
+      }),
+    })
+  },
+}
+
