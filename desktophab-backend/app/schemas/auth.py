@@ -1,4 +1,4 @@
-="""Pydantic schemas for auth endpoints — these match the contract the desktop app expects."""
+"""Pydantic schemas for auth endpoints — these match the contract the desktop app expects."""
 
 from datetime import datetime
 from typing import Any
