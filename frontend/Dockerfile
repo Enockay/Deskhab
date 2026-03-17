@@ -22,3 +22,5 @@ COPY --from=build /app/dist ./
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 8082
+
+CMD ["nginx", "-g", "daemon off;"]
