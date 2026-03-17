@@ -3,7 +3,7 @@ version: '3.8'
 services:
   frontend:
     build:
-      context: ./frontend
+      context: .
       dockerfile: Dockerfile
     container_name: deskhab-frontend
     ports:
