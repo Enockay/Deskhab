@@ -14,6 +14,13 @@ async function apiFetch(path, options = {}) {
     ...options,
   })
 
+  // Global admin auth handling: if token expired/invalid, redirect the admin to login.
+  // (A provider higher up in the tree listens for this event.)
+  if (res.status === 401 && typeof window !== 'undefined') {
+    clearAdminTokens()
+    window.dispatchEvent(new CustomEvent('admin:unauthorized', { detail: { status: 401 } }))
+  }
+
   if (!res.ok) {
     let message = 'Request failed'
     try {
@@ -27,6 +34,61 @@ async function apiFetch(path, options = {}) {
 
   if (res.status === 204) return null
   return res.json()
+}
+
+function apiUploadWithProgress(path, options = {}, onUploadProgress = () => {}) {
+  return new Promise((resolve, reject) => {
+    const method = options.method || 'POST'
+    const headers = options.headers || {}
+    const body = options.body
+
+    const xhr = new XMLHttpRequest()
+    xhr.open(method, `${API_BASE_URL}${path}`, true)
+
+    // Set custom headers (do NOT set Content-Type when body is FormData).
+    Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v))
+
+    xhr.upload.onprogress = (e) => {
+      if (!e || e.lengthComputable === false) return
+      if (!e.total) return
+      const percent = Math.round((e.loaded * 100) / e.total)
+      onUploadProgress(percent)
+    }
+
+    xhr.onload = () => {
+      const status = xhr.status
+      if (status === 401) {
+        clearAdminTokens()
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('admin:unauthorized', { detail: { status } }))
+        }
+      }
+
+      if (status >= 200 && status < 300) {
+        if (status === 204) return resolve(null)
+        try {
+          const json = JSON.parse(xhr.responseText || 'null')
+          return resolve(json)
+        } catch {
+          return resolve(null)
+        }
+      }
+
+      let message = 'Request failed'
+      try {
+        const data = JSON.parse(xhr.responseText || '{}')
+        message = data?.detail || data?.error || JSON.stringify(data)
+      } catch {
+        message = xhr.responseText || `HTTP ${status}`
+      }
+      reject(new Error(message || `HTTP ${status}`))
+    }
+
+    xhr.onerror = () => reject(new Error('Network error during upload'))
+    xhr.onabort = () => reject(new Error('Upload aborted'))
+
+    xhr.send(body)
+  })
 }
 
 function getAdminAccessToken() {
@@ -252,6 +314,30 @@ export const adminApi = {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: formData,
+    })
+  },
+
+  async createReleaseWithProgress(formData, onUploadProgress) {
+    const token = getAdminAccessToken()
+    return apiUploadWithProgress(
+      '/v1/admin/releases',
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      },
+      onUploadProgress
+    )
+  },
+
+  async listReleases({ appId, channel = '' } = {}) {
+    const token = getAdminAccessToken()
+    const params = new URLSearchParams()
+    if (appId) params.set('app_id', appId)
+    if (channel) params.set('channel', channel)
+    const qs = params.toString()
+    return apiFetch(`/v1/admin/releases${qs ? `?${qs}` : ''}`, {
+      headers: { Authorization: `Bearer ${token}` },
     })
   },
 }

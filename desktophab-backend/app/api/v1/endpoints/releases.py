@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import get_db
 from app.db.models import App, Artifact, Release, ReleaseChannel, Platform
 from app.schemas.releases import LatestReleaseResponse, ReleaseArtifactOut
+from app.services.s3 import generate_presigned_get_url
 
 router = APIRouter()
 
@@ -62,7 +63,7 @@ async def get_latest_release(
         min_supported_version=release.min_supported_version,
         artifact=ReleaseArtifactOut(
             platform=platform.value,
-            url=artifact.url,
+            url=generate_presigned_get_url(artifact.url, expires_in=3600),
             checksum_sha256=artifact.checksum_sha256,
             file_size_bytes=artifact.file_size_bytes,
         ),

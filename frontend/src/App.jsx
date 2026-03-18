@@ -16,6 +16,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
+import AdminAuthProvider from './context/AdminAuthContext'
 
 /* ── layout pages ─────────────────────────────────────────── */
 
@@ -72,7 +73,7 @@ export default function App() {
 
         {/* Admin (SPA) */}
         <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/*" element={<AdminDashboard />} />
+        <Route path="/admin/*" element={<AdminAuthProvider><AdminDashboard /></AdminAuthProvider>} />
 
         {/* Fallback */}
         <Route path="*" element={

@@ -6,13 +6,13 @@ const steps = [
   },
   {
     number: 2,
-    title: '5-day free trial',
-    body: 'Full access to all features for 5 days at no cost.',
+    title: 'Add payment',
+    body: 'Pay $1 for your first month.',
   },
   {
     number: 3,
-    title: 'Add payment',
-    body: 'After trial ends, $1/month keeps your access going.',
+    title: 'Renew monthly',
+    body: 'After month one, renewals are $2/month.',
   },
   {
     number: 4,

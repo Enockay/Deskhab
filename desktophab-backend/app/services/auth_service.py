@@ -64,22 +64,6 @@ class AuthService:
         self.db.add(user)
         await self.db.flush()  # get user.id
 
-        # Auto-create SmartCalender trial subscription
-        app = await self._get_app_by_slug("smartcalender")
-        if app:
-            now = datetime.now(timezone.utc)
-            sub = Subscription(
-                user_id=user.id,
-                app_id=app.id,
-                status="trial",
-                tier="premium",
-                features=["all_views", "tasks_board", "reminders"],
-                trial_ends_at=now + timedelta(days=app.trial_days),
-                current_period_start=now,
-                current_period_end=now + timedelta(days=app.trial_days),
-            )
-            self.db.add(sub)
-
         await self.db.commit()
         await self.db.refresh(user)
 

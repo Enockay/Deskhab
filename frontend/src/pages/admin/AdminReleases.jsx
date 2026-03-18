@@ -15,6 +15,11 @@ export default function AdminReleases() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [uploadProgress, setUploadProgress] = useState(0)
+
+  const [releasesLoading, setReleasesLoading] = useState(false)
+  const [releasesError, setReleasesError] = useState('')
+  const [releases, setReleases] = useState([])
 
   useEffect(() => {
     const load = async () => {
@@ -33,6 +38,24 @@ export default function AdminReleases() {
     }
     load()
   }, [])
+
+  useEffect(() => {
+    const loadReleases = async () => {
+      if (!selectedAppId) return
+      setReleasesLoading(true)
+      setReleasesError('')
+      try {
+        const res = await adminApi.listReleases({ appId: selectedAppId, channel })
+        setReleases(res || [])
+      } catch (e) {
+        setReleasesError(e?.message ? String(e.message) : 'Failed to load releases')
+        setReleases([])
+      } finally {
+        setReleasesLoading(false)
+      }
+    }
+    loadReleases()
+  }, [selectedAppId, channel])
 
   const currentFilesOk = Boolean(files.macos || files.windows || files.linux)
 
@@ -182,6 +205,7 @@ export default function AdminReleases() {
                 setSubmitting(true)
                 setError('')
                 setSuccess('')
+                setUploadProgress(0)
                 try {
                   const formData = new FormData()
                   formData.append('app_id', selectedAppId)
@@ -198,15 +222,21 @@ export default function AdminReleases() {
                   if (files.windows) formData.append('windows_file', files.windows)
                   if (files.linux) formData.append('linux_file', files.linux)
 
-                  await adminApi.createRelease(formData)
+                  await adminApi.createReleaseWithProgress(formData, (p) => {
+                    setUploadProgress(p)
+                  })
 
                   setSuccess('Release uploaded successfully. Download page will update automatically.')
                   setVersion('')
                   setNotes('')
                   setMinSupportedVersion('')
-                  setFiles({ macos: null, windows: null, linux: null })
                   setMakeLatest(true)
                   setForceUpdate(false)
+                  setUploadProgress(100)
+
+                  // Refresh the list so "Existing releases" updates immediately.
+                  const refreshed = await adminApi.listReleases({ appId: selectedAppId, channel })
+                  setReleases(refreshed || [])
                 } catch (err) {
                   setError(err?.message || String(err || 'Failed to upload release'))
                 } finally {
@@ -218,24 +248,70 @@ export default function AdminReleases() {
               {submitting ? (
                 <span className="inline-flex items-center gap-2">
                   <span className="h-3 w-3 border border-emerald-400 border-t-transparent rounded-full animate-spin" />
-                  Uploading…
+                  Uploading… {uploadProgress}%
                 </span>
               ) : (
                 'Upload release'
               )}
             </button>
           </div>
+          {submitting && (
+            <div className="mt-3">
+              <div className="h-2.5 w-full bg-black/30 border border-white/10 rounded-md overflow-hidden">
+                <div
+                  className="h-full bg-emerald-500/80"
+                  style={{ width: `${Math.max(0, Math.min(100, uploadProgress))}%`, transition: 'width 120ms linear' }}
+                />
+              </div>
+              <div className="mt-1 text-[11px] text-gray-400">
+                Upload progress based on browser upload bytes.
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="rounded-md border border-white/10 bg-[#16181f] p-4">
           <div className="text-sm font-bold mb-2">Existing releases</div>
+          {releasesError && (
+            <div className="mb-2 text-[11px] text-red-300">
+              {releasesError}
+            </div>
+          )}
           <div className="text-[11px] text-gray-400 mb-2">
-            Once the backend endpoints are added, this panel will list releases from the database and let you toggle
-            <span className="text-emerald-300"> published/unpublished</span> or rollback.
+            Showing releases for this app + channel. Uploading a new release will refresh this list.
           </div>
           <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[11px] text-gray-500">
             For now, deployments can keep using the static download links on the marketing site. When ready we can
             switch the desktop app to `GET /v1/apps/smartcalender/releases/latest?platform=macos&channel=stable`.
+          </div>
+
+          <div className="mt-3">
+            {releasesLoading ? (
+              <div className="text-[11px] text-gray-400">Loading releases…</div>
+            ) : releases.length === 0 ? (
+              <div className="text-[11px] text-gray-400">No releases found yet.</div>
+            ) : (
+              <div className="space-y-2">
+                {releases.map((r) => {
+                  const platforms = (r.artifacts || []).map((a) => a.platform).join(', ')
+                  return (
+                    <div key={r.release_id} className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-[11px] text-white font-semibold">
+                          {r.version} <span className="text-gray-400">({r.channel})</span>
+                        </div>
+                        <div className={`text-[11px] font-semibold ${r.is_published ? 'text-emerald-300' : 'text-gray-400'}`}>
+                          {r.is_published ? 'Published' : 'Unpublished'}
+                        </div>
+                      </div>
+                      <div className="text-[11px] text-gray-400 mt-1">
+                        Platforms: {platforms || '—'}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>

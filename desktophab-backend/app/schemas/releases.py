@@ -37,3 +37,17 @@ class AdminReleaseCreateResponse(BaseModel):
     artifacts: list[ReleaseArtifactOut] = []
     meta: dict[str, Any] = {}
 
+
+class AdminReleaseOut(BaseModel):
+    release_id: str
+    app_id: str
+    app_slug: str
+    app_name: str | None = None
+    version: str
+    channel: str
+    notes: str | None = None
+    is_published: bool
+    is_force_update: bool
+    min_supported_version: str | None = None
+    artifacts: list[ReleaseArtifactOut] = []
+

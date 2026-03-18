@@ -101,7 +101,7 @@ export default function PaymentCallback() {
                 <>
                   <h1 className="text-xl font-bold text-white mb-2">Payment verified ✅</h1>
                   <p className="text-gray-400 text-xs">
-                    Your free trial is active. Redirecting you to the download page…
+                    Your payment is verified. Redirecting you to the download page…
                   </p>
                 </>
               )}

@@ -52,7 +52,7 @@ async def get_or_create_app(db: AsyncSession, *, slug: str) -> App:
         slug=slug,
         name=name,
         monthly_price_usd=1.00,
-        trial_days=5,
+        trial_days=0,  # No free trial: first paid month is charged immediately.
         is_active=True,
     )
     db.add(app)
@@ -115,8 +115,10 @@ async def create_checkout_session(req: CreateCheckoutRequest) -> CheckoutSession
     if not settings.PAYSTACK_SECRET_KEY:
         raise HTTPException(status_code=500, detail="Paystack is not configured")
 
-    # amount in kobo (example: ₦100 → 100 * 100)
-    amount_kobo = 100  # TODO: compute from plan/app_slug
+    # Amount in the smallest currency unit Paystack expects.
+    # If your Paystack currency is USD, then:
+    #   100 = $1.00
+    amount_kobo = 100  # $1 initial checkout
 
     try:
         checkout_url, reference = await init_transaction(
@@ -166,7 +168,8 @@ async def renew_subscription(
 
     app = await get_or_create_app(db, slug=req.app_slug)
 
-    amount_kobo = 100  # TODO: compute from plan / app configuration
+    # Renewal charges $2.
+    amount_kobo = 200  # $2 renewal
 
     try:
         # Include kind in callback URL so frontend can reliably show "Account upgraded" (sessionStorage may be lost).
@@ -289,7 +292,7 @@ async def verify_checkout(
         db.add(sub)
 
     # Record payment (idempotent)
-    amount_usd = 1.00  # TODO: derive from Paystack amount / FX rate
+    amount_usd = 2.00 if kind == "renewal" else 1.00
     if existing_payment:
         existing_payment.user_id = user.id
         existing_payment.app_id = app.id

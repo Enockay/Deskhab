@@ -116,7 +116,7 @@ export default function CreateAccount() {
               <div className="flex flex-wrap items-baseline gap-x-1 gap-y-0.5">
                 <span>Starting your</span>
                 <span className="capitalize font-bold">{plan}</span>
-                <span>5‑day free trial</span>
+                <span>— first month $1, then renewals $2/month.</span>
               </div>
             </div>
           )}

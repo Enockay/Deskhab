@@ -71,7 +71,8 @@ class SubscriptionService:
             cancel_url=f"{settings.SITE_URL}/pricing?checkout=cancelled",
             metadata={"user_id": str(user.id), "app_slug": app_slug},
             subscription_data={
-                "trial_period_days": app.trial_days,
+                # No free trial: charge immediately and handle renewals normally.
+                "trial_period_days": 0,
                 "metadata": {"user_id": str(user.id), "app_slug": app_slug},
             },
         )

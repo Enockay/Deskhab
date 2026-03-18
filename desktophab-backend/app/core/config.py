@@ -51,14 +51,15 @@ class Settings(BaseSettings):
     # S3 (Releases / Downloads)
     AWS_ACCESS_KEY_ID: str | None = None
     AWS_SECRET_ACCESS_KEY: str | None = None
-    AWS_REGION: str = "eu-north-1"
+    AWS_REGION: str = "us-east-1"
     AWS_S3_BUCKET: str | None = None
     # If you use CloudFront or a custom domain, set this to your public base URL.
     # Example: https://d123.cloudfront.net
     AWS_S3_PUBLIC_BASE_URL: str | None = None
 
     # CORS
-    ALLOWED_ORIGINS: str = "http://localhost:3000"
+    # Local dev: frontend runs on Vite (5173), but some tooling may use 3000.
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
 
     # URLs
     SITE_URL: str = "https://desktophab.com"

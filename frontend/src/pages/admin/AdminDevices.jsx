@@ -2,6 +2,23 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminApi, clearAdminTokens } from '../../lib/adminApi'
 
+function formatHumanDateTime(value) {
+  if (!value) return '—'
+  const d = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(d.getTime())) return String(value)
+
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'UTC',
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  }).format(d)
+}
+
 export default function AdminDevices() {
   const navigate = useNavigate()
   const [devicesState, setDevicesState] = useState({ items: [], total: 0 })
@@ -94,7 +111,7 @@ export default function AdminDevices() {
                       <td className="py-2 pr-3 max-w-[220px] truncate">{d.email || d.user_id}</td>
                       <td className="py-2 pr-3 max-w-[260px] truncate">{d.device_name || d.device_id}</td>
                       <td className="py-2 pr-3 whitespace-nowrap text-gray-300">{d.platform || '—'}</td>
-                      <td className="py-2 pr-3 whitespace-nowrap text-gray-400">{d.last_seen_at || '—'}</td>
+                      <td className="py-2 pr-3 whitespace-nowrap text-gray-400">{formatHumanDateTime(d.last_seen_at)}</td>
                     </tr>
                   ))}
                   {(!devicesState?.items || devicesState.items.length === 0) && (
@@ -125,7 +142,7 @@ export default function AdminDevices() {
                 </div>
                 <div className="text-[11px] text-gray-400">
                   Last seen:{' '}
-                  <span className="text-emerald-200">{selectedDevice.last_seen_at || '—'}</span>
+                  <span className="text-emerald-200">{formatHumanDateTime(selectedDevice.last_seen_at)}</span>
                 </div>
               </div>
 

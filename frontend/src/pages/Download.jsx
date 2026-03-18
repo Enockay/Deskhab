@@ -72,7 +72,16 @@ export default function Download() {
 
         const next = {}
         for (const r of results) {
-          next[r.platform] = { url: r.artifact.url, version: r.version }
+          const url = r?.artifact?.url
+          // The backend should return a presigned URL (signed). If it doesn't,
+          // prevent broken redirects and show a clear error.
+          const isSigned = typeof url === 'string' && url.includes('X-Amz-Signature')
+          if (!isSigned) {
+            setReleasesError('Download URLs are not signed yet. Please refresh after backend update.')
+            next[r.platform] = { url: null, version: r.version }
+          } else {
+            next[r.platform] = { url, version: r.version }
+          }
         }
         setReleaseLinks(next)
       } catch (err) {
@@ -109,7 +118,7 @@ export default function Download() {
               You&apos;re all set. Download DesktopHab.
             </h1>
             <p className="text-gray-400 text-sm sm:text-base max-w-2xl mx-auto">
-              Your 5-day free trial is active. Choose your platform below to download the SmartCalender app,
+              Your subscription is active. Choose your platform below to download the SmartCalender app,
               then sign in with the account you just created.
             </p>
           </div>
@@ -179,7 +188,7 @@ export default function Download() {
           {/* Trial + next steps */}
           <div className="flex flex-col items-center gap-3 text-center text-xs text-gray-400 mb-6">
             <p>
-              Don&apos;t worry — you won&apos;t be charged today. We&apos;ll email you a reminder before your 5-day trial ends.
+              You&apos;re good to go. First month is $1, then renewals are $2/month.
             </p>
             <p className="text-[11px] text-gray-500">
               Next step: install DesktopHab, open the app, and sign in with the email you just used to create your account.

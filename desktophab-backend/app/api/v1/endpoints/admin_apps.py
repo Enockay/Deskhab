@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.admin_dependencies import get_current_admin_user
 from app.core.dependencies import get_db
-from app.db.models import AdminRole, AdminUser, App, AuditLog
+from app.db.models import AdminRole, AdminUser, App, AuditLog, Release
 from app.schemas.admin_apps import AdminAppOut, AdminAppUpdateRequest
 
 
@@ -68,6 +68,13 @@ async def update_app(
         app.trial_days = payload.trial_days
     if payload.is_active is not None:
         app.is_active = payload.is_active
+
+    # "Unpublish the app" when deactivating it:
+    # make sure no release is returned as "latest" for clients.
+    if payload.is_active is False:
+        await db.execute(
+            update(Release).where(Release.app_id == app.id).values(is_published=False)
+        )
 
     db.add(
         AuditLog(
