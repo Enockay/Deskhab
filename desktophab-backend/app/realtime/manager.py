@@ -23,7 +23,7 @@ class ConnectionManager:
         self._by_user: dict[str, set[WebSocket]] = defaultdict(set)
 
     async def connect(self, user_id: str, ws: WebSocket) -> None:
-        await ws.accept()
+        # The websocket should be accepted by the gateway/endpoint before registering here.
         async with self._lock:
             self._by_user[user_id].add(ws)
         logger.info(f"ws connected user_id={user_id} clients={len(self._by_user[user_id])}")
