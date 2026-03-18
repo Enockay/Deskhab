@@ -27,6 +27,7 @@ from app.core.config import settings
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.subscription import router as sub_router
 from app.api.v1.endpoints.ws import router as ws_router
+from app.api.v1.endpoints.devices import router as devices_router
 from app.db.session import async_engine, sync_engine
 from app.db.models import Base
 from app.admin.panel import create_admin
@@ -112,6 +113,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router, prefix="/v1", tags=["Auth"])
     app.include_router(sub_router, prefix="/v1", tags=["Subscription"])
     app.include_router(ws_router, prefix="/v1", tags=["Realtime"])
+    app.include_router(devices_router, prefix="/v1", tags=["Devices"])
 
     # ── Admin panel ───────────────────────────────────────────────────────────
     # sqladmin uses the sync engine for its queries

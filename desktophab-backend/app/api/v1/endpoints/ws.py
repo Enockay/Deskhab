@@ -7,9 +7,12 @@ from typing import Any
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from jose import JWTError
 from loguru import logger
+from sqlalchemy import select
 
 from app.core.security import decode_access_token
 from app.realtime.state import manager as ws_manager
+from app.db.session import AsyncSessionLocal
+from app.db.models import DeviceBinding, utcnow
 
 
 router = APIRouter()
@@ -43,6 +46,21 @@ async def websocket_gateway(ws: WebSocket):
     except (JWTError, ValueError, Exception):
         await ws.close(code=4401)
         return
+
+    # Device binding enforcement (optional for now, but enabled when device_id is provided)
+    device_id = (ws.query_params.get("device_id") or "").strip()
+    if device_id:
+        async with AsyncSessionLocal() as db:
+            res = await db.execute(
+                select(DeviceBinding).where(DeviceBinding.user_id == authed_user_id)
+            )
+            binding = res.scalar_one_or_none()
+            if not binding or binding.device_id != device_id:
+                await ws.close(code=4403)
+                return
+            # refresh last_seen
+            binding.last_seen_at = utcnow()
+            await db.commit()
 
     subscribed_user_id: str | None = None
 

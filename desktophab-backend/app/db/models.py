@@ -231,6 +231,33 @@ class PasswordReset(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+# ─── Device bindings ──────────────────────────────────────────────────────────
+
+class DeviceBinding(Base):
+    """
+    One-device-per-account binding.
+    Enforced by requiring clients to send X-Device-ID on authenticated requests and device_id on websocket connect.
+    """
+
+    __tablename__ = "device_bindings"
+    __table_args__ = (
+        UniqueConstraint("user_id", name="uq_device_bindings_user_id"),
+        Index("ix_device_bindings_user_id", "user_id"),
+        Index("ix_device_bindings_device_id", "device_id"),
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    device_id = Column(String(128), nullable=False)  # UUID from client
+    device_name = Column(String(255))
+    platform = Column(String(64))  # "macos", "windows", "linux"
+
+    last_seen_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
 # ─── Admin users ──────────────────────────────────────────────────────────────
 
 class AdminUser(Base):
