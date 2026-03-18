@@ -14,6 +14,8 @@ import PaymentCallback from './pages/PaymentCallback'
 import RenewSmartCalender from './pages/RenewSmartCalender'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
+import AdminLogin from './pages/AdminLogin'
+import AdminDashboard from './pages/AdminDashboard'
 
 /* ── layout pages ─────────────────────────────────────────── */
 
@@ -67,6 +69,10 @@ export default function App() {
         <Route path="/payment/callback" element={<PaymentCallback />} />
         <Route path="/renew-smartcalender/:slug" element={<RenewSmartCalender />} />
         <Route path="/download" element={<Download />} />
+
+        {/* Admin (SPA) */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/*" element={<AdminDashboard />} />
 
         {/* Fallback */}
         <Route path="*" element={

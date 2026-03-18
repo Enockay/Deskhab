@@ -340,8 +340,26 @@ async def forgot_password(
     await db.commit()
 
     reset_url = f"{settings.SITE_URL.rstrip('/')}/reset-password?token={raw}"
-    await send_password_reset_email(normalized, reset_url=reset_url)
-    logger.info(f"forgot-password email sent email={normalized} user_id={user.id}")
+    try:
+        await send_password_reset_email(normalized, reset_url=reset_url)
+        logger.info(f"forgot-password email sent email={normalized} user_id={user.id}")
+    except Exception as exc:
+        # Best-effort event for admin overview metrics
+        try:
+            from app.db.models import SystemEventType
+            from app.services.system_events import record_event
+
+            await record_event(
+                db,
+                type=SystemEventType.email,
+                name="email.password_reset.failed",
+                level="error",
+                user_id=user.id,
+                message=str(exc),
+                meta={"email": normalized},
+            )
+        except Exception:
+            pass
     return {"success": True}
 
 

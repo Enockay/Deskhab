@@ -81,3 +81,10 @@ export const subscriptionApi = {
   },
 }
 
+export const appsApi = {
+  async getLatestReleaseArtifact({ appSlug, platform, channel = 'stable' }) {
+    return apiFetch(
+      `/v1/apps/${encodeURIComponent(appSlug)}/releases/latest?platform=${encodeURIComponent(platform)}&channel=${encodeURIComponent(channel)}`
+    )
+  },
+}

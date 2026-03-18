@@ -7,8 +7,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, get_db
-from app.db.models import DeviceBinding, User, utcnow
+from app.db.models import DeviceBinding, User, utcnow, SystemEventType
 from app.schemas.device import DeviceBindRequest, DeviceBindResponse
+from app.services.system_events import record_event
 
 
 router = APIRouter()
@@ -59,6 +60,18 @@ async def bind_device(
         )
 
     if binding.device_id != body_device_id:
+        await record_event(
+            db,
+            type=SystemEventType.device,
+            name="device.bind.conflict",
+            level="warning",
+            user_id=current_user.id,
+            meta={
+                "requested_device_id": body_device_id,
+                "bound_device_id": binding.device_id,
+                "platform": payload.platform,
+            },
+        )
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="device_already_bound",

@@ -31,6 +31,8 @@ from app.db.models import (
 from app.services.email import send_receipt_email
 from app.realtime.state import manager as ws_manager, redis as ws_redis
 from app.realtime.pubsub import publish_user_event
+from app.db.models import SystemEventType
+from app.services.system_events import record_event
 
 router = APIRouter()
 
@@ -206,6 +208,14 @@ async def verify_checkout(
     try:
         data = await verify_transaction(reference)
     except Exception as exc:
+        await record_event(
+            db,
+            type=SystemEventType.payment,
+            name="paystack.verify.failed",
+            level="error",
+            message=str(exc),
+            meta={"reference": reference},
+        )
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     if data.get("status") != "success":
@@ -234,6 +244,15 @@ async def verify_checkout(
     )
     existing_payment = existing_payment_res.scalar_one_or_none()
     if existing_payment and existing_payment.status == PaymentStatus.succeeded:
+        await record_event(
+            db,
+            type=SystemEventType.payment,
+            name="payment.idempotent.hit",
+            level="info",
+            user_id=user.id,
+            app_id=app.id,
+            meta={"reference": reference},
+        )
         return CheckoutSessionResponse(checkout_url="", session_id=reference)
 
     # Upsert subscription
@@ -296,6 +315,15 @@ async def verify_checkout(
     except IntegrityError:
         # Another request recorded the same paystack reference concurrently.
         await db.rollback()
+        await record_event(
+            db,
+            type=SystemEventType.payment,
+            name="payment.idempotent.conflict",
+            level="warning",
+            user_id=user.id,
+            app_id=app.id,
+            meta={"reference": reference},
+        )
         return CheckoutSessionResponse(checkout_url="", session_id=reference)
 
     # Send email receipt (best-effort)
@@ -309,6 +337,15 @@ async def verify_checkout(
         )
     except Exception:
         # Log inside email service; do not fail the request.
+        await record_event(
+            db,
+            type=SystemEventType.email,
+            name="email.receipt.failed",
+            level="error",
+            user_id=user.id,
+            app_id=app.id,
+            meta={"reference": reference, "email": user.email},
+        )
         pass
 
     # Realtime push (signal only; desktop should refetch /subscription/status)

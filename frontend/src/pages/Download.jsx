@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import StepHeader from '../components/StepHeader'
 import { detectPlatform } from '../lib/os'
+import { appsApi } from '../lib/api'
 
 const recommendedAnimStyles = `
   @keyframes borderBreath {
@@ -49,15 +50,44 @@ const recommendedAnimStyles = `
 
 export default function Download() {
   const [autoPlatform, setAutoPlatform] = useState('other')
+  const [releaseLinks, setReleaseLinks] = useState({}) // { macos: { url, version }, ... }
+  const [releasesLoading, setReleasesLoading] = useState(true)
+  const [releasesError, setReleasesError] = useState('')
 
   useEffect(() => {
     setAutoPlatform(detectPlatform())
   }, [])
 
+  useEffect(() => {
+    const run = async () => {
+      setReleasesLoading(true)
+      setReleasesError('')
+      try {
+        const platformKeys = ['macos', 'windows', 'linux']
+        const results = await Promise.all(
+          platformKeys.map((platform) =>
+            appsApi.getLatestReleaseArtifact({ appSlug: 'smartcalender', platform, channel: 'stable' }),
+          ),
+        )
+
+        const next = {}
+        for (const r of results) {
+          next[r.platform] = { url: r.artifact.url, version: r.version }
+        }
+        setReleaseLinks(next)
+      } catch (err) {
+        setReleasesError(err?.message || String(err || 'Failed to load releases'))
+      } finally {
+        setReleasesLoading(false)
+      }
+    }
+    run()
+  }, [])
+
   const platforms = [
-    { key: 'macos', label: 'macOS', tag: 'DMG', badge: 'Recommended', href: '#' },
-    { key: 'windows', label: 'Windows', tag: 'EXE', badge: 'Most popular', href: '#' },
-    { key: 'linux', label: 'Linux', tag: 'AppImage', badge: 'For power users', href: '#' },
+    { key: 'macos', label: 'macOS', tag: 'DMG', badge: 'Recommended' },
+    { key: 'windows', label: 'Windows', tag: 'EXE', badge: 'Most popular' },
+    { key: 'linux', label: 'Linux', tag: 'AppImage', badge: 'For power users' },
   ]
 
   return (
@@ -88,15 +118,20 @@ export default function Download() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
             {platforms.map(({ key, label, href, tag, badge }) => {
               const isRec = key === 'macos'
+              const link = releaseLinks[key]?.url
+              const disabled = releasesLoading || !link
               return (
                 <a
                   key={key}
-                  href={href}
+                  href={link || '#'}
+                  onClick={(e) => {
+                    if (disabled) e.preventDefault()
+                  }}
                   className={`group relative overflow-hidden rounded-2xl border bg-white/[0.02]
                              px-5 py-5 flex flex-col items-center justify-between gap-2 transition-all duration-200
                              ${isRec
                                ? 'rec-card border-emerald-400/80 bg-emerald-500/5'
-                               : 'border-white/10 hover:border-emerald-400/80 hover:bg-emerald-500/5'}`}
+                               : 'border-white/10 hover:border-emerald-400/80 hover:bg-emerald-500/5'} ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                   {/* Always-on radial glow for recommended */}
                   {isRec && (
@@ -118,6 +153,14 @@ export default function Download() {
                       {label}
                     </span>
                     <span className="text-[11px] text-gray-400 uppercase tracking-[0.16em]">{tag}</span>
+                    {releasesLoading && isRec && (
+                      <span className="h-3 w-3 border border-emerald-400/70 border-t-transparent rounded-full animate-spin" />
+                    )}
+                    {!releasesLoading && link && (
+                      <span className="text-[10px] text-emerald-200/80 font-semibold">
+                        v{releaseLinks[key]?.version}
+                      </span>
+                    )}
                     <span className={`mt-2 inline-flex items-center rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-200 ${isRec ? 'rec-badge' : ''}`}>
                       {badge}
                     </span>
@@ -126,6 +169,12 @@ export default function Download() {
               )
             })}
           </div>
+
+          {releasesError && (
+            <div className="text-center text-xs text-red-300 mb-6">
+              {releasesError}
+            </div>
+          )}
 
           {/* Trial + next steps */}
           <div className="flex flex-col items-center gap-3 text-center text-xs text-gray-400 mb-6">

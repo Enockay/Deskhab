@@ -28,12 +28,25 @@ from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.subscription import router as sub_router
 from app.api.v1.endpoints.ws import router as ws_router
 from app.api.v1.endpoints.devices import router as devices_router
+from app.api.v1.endpoints.releases import router as releases_router
+from app.api.v1.endpoints.admin_auth import router as admin_auth_router
+from app.api.v1.endpoints.admin_users import router as admin_users_router
+from app.api.v1.endpoints.admin_overview import router as admin_overview_router
+from app.api.v1.endpoints.admin_app_users import router as admin_app_users_router
+from app.api.v1.endpoints.admin_subscriptions import router as admin_subscriptions_router
+from app.api.v1.endpoints.admin_payments import router as admin_payments_router
+from app.api.v1.endpoints.admin_devices import router as admin_devices_router
+from app.api.v1.endpoints.admin_apps import router as admin_apps_router
+from app.api.v1.endpoints.admin_releases import router as admin_releases_router
 from app.db.session import async_engine, sync_engine
 from app.db.models import Base
 from app.admin.panel import create_admin
 from app.realtime.state import manager as ws_manager
 from app.realtime import state as realtime_state
 from app.realtime.pubsub import CHANNEL_PREFIX, subscribe_forever
+from app.core.security import hash_password
+from app.db.models import AdminUser, AdminRole
+from sqlalchemy import select
 
 try:
     from redis.asyncio import Redis
@@ -48,6 +61,43 @@ async def lifespan(app: FastAPI):
     if settings.APP_ENV == "development":
         async with async_engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+
+    # Ensure first admin exists (safe to run in any env; creates only if none exist).
+    try:
+        from app.db.session import AsyncSessionLocal
+
+        async with AsyncSessionLocal() as db:
+            email = settings.FIRST_ADMIN_EMAIL.strip().lower()
+            password = settings.FIRST_ADMIN_PASSWORD
+
+            res = await db.execute(select(AdminUser).where(AdminUser.email == email))
+            existing = res.scalar_one_or_none()
+            if not existing:
+                email = settings.FIRST_ADMIN_EMAIL.strip().lower()
+                admin = AdminUser(
+                    email=email,
+                    hashed_password=hash_password(password),
+                    name="First Admin",
+                    role=AdminRole.admin,
+                    is_active=True,
+                    is_superadmin=True,
+                )
+                db.add(admin)
+                await db.commit()
+                logger.warning(
+                    f"Created first admin user email={email}. Change FIRST_ADMIN_PASSWORD immediately."
+                )
+            else:
+                # Dev convenience: allow changing FIRST_ADMIN_PASSWORD in .env and restarting to regain access.
+                if settings.APP_ENV == "development":
+                    existing.hashed_password = hash_password(password)
+                    existing.is_active = True
+                    await db.commit()
+                    logger.warning(
+                        f"Synced FIRST_ADMIN_PASSWORD for email={email} (development only)."
+                    )
+    except Exception as exc:
+        logger.warning(f"Could not ensure first admin user exists: {exc}")
 
     # Optional Redis Pub/Sub fanout for websocket events (multi-instance support)
     task = None
@@ -114,6 +164,16 @@ def create_app() -> FastAPI:
     app.include_router(sub_router, prefix="/v1", tags=["Subscription"])
     app.include_router(ws_router, prefix="/v1", tags=["Realtime"])
     app.include_router(devices_router, prefix="/v1", tags=["Devices"])
+    app.include_router(admin_auth_router, prefix="/v1", tags=["AdminAuth"])
+    app.include_router(admin_users_router, prefix="/v1", tags=["AdminUsers"])
+    app.include_router(admin_overview_router, prefix="/v1", tags=["AdminOverview"])
+    app.include_router(admin_app_users_router, prefix="/v1", tags=["AdminAppUsers"])
+    app.include_router(admin_subscriptions_router, prefix="/v1", tags=["AdminSubscriptions"])
+    app.include_router(admin_payments_router, prefix="/v1", tags=["AdminPayments"])
+    app.include_router(admin_devices_router, prefix="/v1", tags=["AdminDevices"])
+    app.include_router(admin_apps_router, prefix="/v1", tags=["AdminApps"])
+    app.include_router(releases_router, prefix="/v1", tags=["Releases"])
+    app.include_router(admin_releases_router, prefix="/v1", tags=["AdminReleases"])
 
     # ── Admin panel ───────────────────────────────────────────────────────────
     # sqladmin uses the sync engine for its queries

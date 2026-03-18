@@ -54,11 +54,26 @@ class UserRole(str, PyEnum):
     admin = "admin"
 
 
+class AdminRole(str, PyEnum):
+    support = "support"   # read-only
+    manager = "manager"   # can manage users/subscriptions/payments
+    admin = "admin"       # full access
+
+
 class PaymentStatus(str, PyEnum):
     pending = "pending"
     succeeded = "succeeded"
     failed = "failed"
     refunded = "refunded"
+
+
+class SystemEventType(str, PyEnum):
+    payment = "payment"
+    email = "email"
+    device = "device"
+    realtime = "realtime"
+    auth = "auth"
+    system = "system"
 
 
 # ─── Apps catalogue ───────────────────────────────────────────────────────────
@@ -268,12 +283,29 @@ class AdminUser(Base):
     email = Column(String(255), unique=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     name = Column(String(128))
+    role = Column(Enum(AdminRole), default=AdminRole.admin, nullable=False)
     is_active = Column(Boolean, default=True)
+    # Backwards compatible flag (kept for sqladmin UI); treat as "admin"
     is_superadmin = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_login_at = Column(DateTime(timezone=True))
 
     audit_logs = relationship("AuditLog", back_populates="admin")
+
+
+class AdminRefreshToken(Base):
+    __tablename__ = "admin_refresh_tokens"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    admin_id = Column(Integer, ForeignKey("admin_users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash = Column(String(64), unique=True, nullable=False, index=True)  # SHA-256 of raw token
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    revoked = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_admin_refresh_tokens_hash_revoked", "token_hash", "revoked"),
+    )
 
 
 # ─── Audit logs ───────────────────────────────────────────────────────────────
@@ -291,3 +323,80 @@ class AuditLog(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     admin = relationship("AdminUser", back_populates="audit_logs")
+
+
+# ─── System events (operational metrics) ──────────────────────────────────────
+
+class SystemEvent(Base):
+    __tablename__ = "system_events"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    type = Column(Enum(SystemEventType), nullable=False, index=True)
+    name = Column(String(128), nullable=False, index=True)  # e.g. "paystack.verify.failed"
+    level = Column(String(16), default="info", nullable=False)  # "info" | "warning" | "error"
+
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    admin_id = Column(Integer, ForeignKey("admin_users.id", ondelete="SET NULL"), nullable=True, index=True)
+    app_id = Column(UUID(as_uuid=True), ForeignKey("apps.id", ondelete="SET NULL"), nullable=True, index=True)
+
+    message = Column(String(512))
+    meta = Column(JSON, default=dict)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    __table_args__ = (
+        Index("ix_system_events_type_created", "type", "created_at"),
+        Index("ix_system_events_name_created", "name", "created_at"),
+    )
+
+
+# ─── Releases / Artifacts ─────────────────────────────────────────────────────
+
+
+class ReleaseChannel(str, PyEnum):
+    stable = "stable"
+    beta = "beta"
+
+
+class Platform(str, PyEnum):
+    macos = "macos"
+    windows = "windows"
+    linux = "linux"
+
+
+class Release(Base):
+    __tablename__ = "releases"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    app_id = Column(UUID(as_uuid=True), ForeignKey("apps.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    version = Column(String(32), nullable=False)  # semver string
+    channel = Column(Enum(ReleaseChannel), default=ReleaseChannel.stable, nullable=False)
+    notes = Column(Text)
+    is_published = Column(Boolean, default=False)
+    is_force_update = Column(Boolean, default=False)
+    min_supported_version = Column(String(32))
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    app = relationship("App")
+    artifacts = relationship("Artifact", back_populates="release", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        UniqueConstraint("app_id", "version", "channel", name="uq_release_app_version_channel"),
+    )
+
+
+class Artifact(Base):
+    __tablename__ = "artifacts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    release_id = Column(UUID(as_uuid=True), ForeignKey("releases.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    platform = Column(Enum(Platform), nullable=False)
+    url = Column(String(512), nullable=False)  # S3 / CDN URL
+    checksum_sha256 = Column(String(128))
+    file_size_bytes = Column(Integer)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    release = relationship("Release", back_populates="artifacts")
