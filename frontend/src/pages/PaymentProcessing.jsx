@@ -21,6 +21,7 @@ export default function PaymentProcessing() {
     try {
       const res = await subscriptionApi.startTrial({ email })
       if (!res?.checkout_url) throw new Error('Checkout URL missing from server response.')
+      sessionStorage.setItem('checkout_kind', 'trial')
       window.location.href = res.checkout_url
     } catch (err) {
       setStatus('error')

@@ -130,12 +130,15 @@ async def send_receipt_email(
         "htmlContent": f"""
         <html>
           <body style="margin:0;padding:0;background-color:#020617;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-            <table width="100%" cellspacing="0" cellpadding="0" style="background:#020617;padding:32px 0;">
+            <table width="100%" cellspacing="0" cellpadding="0" style="background:#020617;padding:0;margin:0;">
               <tr>
-                <td align="center">
-                  <table width="520" cellspacing="0" cellpadding="0" style="background:#020617;border-radius:24px;border:1px solid #1f2937;padding:36px;">
+                <td align="center" style="padding:0;margin:0;">
+                  <table width="100%" cellspacing="0" cellpadding="0" style="background:#020617;padding:0;margin:0;">
                     <tr>
-                      <td align="center" style="padding-bottom:24px;">
+                      <td align="center" style="padding:0;">
+                        <table width="640" cellspacing="0" cellpadding="0" style="width:640px;max-width:100%;background:#020617;border-radius:24px;border:1px solid #1f2937;padding:20px;">
+                    <tr>
+                      <td align="center" style="padding-bottom:14px;">
                         <table cellspacing="0" cellpadding="0">
                           <tr>
                             <td align="center" style="width:40px;height:40px;border-radius:16px;background:#10b981;">
@@ -155,36 +158,55 @@ async def send_receipt_email(
                       </td>
                     </tr>
                     <tr>
-                      <td style="color:#9ca3af;font-size:14px;line-height:1.65;padding-bottom:18px;">
-                        Your <span style="color:#e5e7eb;font-weight:700;">{app_name}</span> subscription is active.
-                        Keep building — we&apos;ve got you covered.
+                      <td style="color:#9ca3af;font-size:14px;line-height:1.65;padding-bottom:12px;">
+                        Your <span style="color:#e5e7eb;font-weight:800;">{app_name}</span> subscription has been upgraded and is now <span style="color:#e5e7eb;font-weight:800;">Active</span>.
                       </td>
                     </tr>
                     <tr>
-                      <td style="background:#0b1220;border-radius:18px;border:1px solid rgba(16,185,129,0.45);padding:18px 20px;color:#e5e7eb;font-size:14px;line-height:1.6;">
-                        <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
-                          <span style="color:#94a3b8;">Amount</span>
-                          <span style="color:#f8fafc;font-weight:800;">${amount_usd:.2f} USD</span>
-                        </div>
-                        <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
-                          <span style="color:#94a3b8;">Product</span>
-                          <span style="color:#e5e7eb;font-weight:700;">{app_name}</span>
-                        </div>
-                        <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
-                          <span style="color:#94a3b8;">Next renewal</span>
-                          <span style="color:#e5e7eb;font-weight:700;">{period_end_human}</span>
-                        </div>
-                        <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;">
-                          <span style="color:#94a3b8;">Reference</span>
-                          <span style="color:#e5e7eb;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;font-weight:700;">
-                            {reference}
-                          </span>
-                        </div>
+                      <td style="background:#0b1220;border-radius:18px;border:1px solid rgba(16,185,129,0.45);padding:14px 16px;color:#e5e7eb;font-size:14px;line-height:1.6;">
+                        <!-- Use tables (not flex) for consistent spacing across email clients -->
+                        <table width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;">
+                          <tr>
+                            <td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:#94a3b8;">
+                              Amount
+                            </td>
+                            <td align="right" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:#f8fafc;font-weight:900;white-space:nowrap;">
+                              USD&nbsp;${amount_usd:.2f}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:#94a3b8;">
+                              Plan
+                            </td>
+                            <td align="right" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:#e5e7eb;font-weight:800;white-space:nowrap;">
+                              {app_name}&nbsp;&bull;&nbsp;Premium
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:#94a3b8;">
+                              Valid until
+                            </td>
+                            <td align="right" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:#e5e7eb;font-weight:700;">
+                              {period_end_human}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding:8px 0;color:#94a3b8;">
+                              Reference
+                            </td>
+                            <td align="right" style="padding:8px 0;color:#e5e7eb;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;font-weight:800;">
+                              {reference}
+                            </td>
+                          </tr>
+                        </table>
                       </td>
                     </tr>
                     <tr>
-                      <td style="color:#6b7280;font-size:12px;line-height:1.6;padding-top:18px;border-top:1px solid #111827;">
-                        Manage your subscription anytime in the DesktopHab app.
+                      <td style="color:#6b7280;font-size:12px;line-height:1.6;padding-top:12px;border-top:1px solid #111827;">
+                        You can manage your subscription anytime in the DesktopHab app.
+                      </td>
+                    </tr>
+                        </table>
                       </td>
                     </tr>
                   </table>

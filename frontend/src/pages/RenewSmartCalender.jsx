@@ -22,6 +22,8 @@ export default function RenewSmartCalender() {
       try {
         const res = await subscriptionApi.renew({ userSlug: slug, token })
         setStatus('redirecting')
+        // Mark this flow so the callback page shows "Account upgraded" instead of download redirect.
+        sessionStorage.setItem('checkout_kind', 'renewal')
         window.location.href = res.checkout_url
       } catch (err) {
         setStatus('error')

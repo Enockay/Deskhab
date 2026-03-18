@@ -12,6 +12,9 @@ export default function PaymentCallback() {
   const navigate = useNavigate()
   const query = useQuery()
   const reference = query.get('reference') || query.get('trxref') || ''
+  const checkoutKind =
+    query.get('kind') ||
+    ((typeof window !== 'undefined' && sessionStorage.getItem('checkout_kind')) || 'trial')
 
   const [status, setStatus] = useState('verifying')
   const [error, setError] = useState('')
@@ -27,8 +30,13 @@ export default function PaymentCallback() {
       try {
         await subscriptionApi.verify(reference)
         setStatus('success')
-        // optional: small delay then redirect to downloads
-        setTimeout(() => navigate('/download'), 1200)
+        // Clear the flow marker so refreshes don't mis-route.
+        try { sessionStorage.removeItem('checkout_kind') } catch {}
+
+        // If this was a renewal flow, keep user on this screen (desktop app will unlock via socket).
+        if (checkoutKind !== 'renewal') {
+          setTimeout(() => navigate('/download'), 1200)
+        }
       } catch (err) {
         setStatus('error')
         setError(err.message || 'Unable to verify payment.')
@@ -76,10 +84,27 @@ export default function PaymentCallback() {
 
           {status === 'success' && (
             <>
-              <h1 className="text-xl font-bold text-white mb-2">Payment verified ✅</h1>
-              <p className="text-gray-400 text-xs">
-                Your free trial is active. Redirecting you to the download page…
-              </p>
+              {checkoutKind === 'renewal' ? (
+                <>
+                  <h1 className="text-xl font-bold text-white mb-2">Account upgraded ✅</h1>
+                  <p className="text-gray-400 text-xs mb-4">
+                    Your subscription is active. You can return to the DesktopHab app — it will unlock automatically.
+                  </p>
+                  <Link
+                    to="/"
+                    className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-xs font-semibold text-white"
+                  >
+                    Back to site
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <h1 className="text-xl font-bold text-white mb-2">Payment verified ✅</h1>
+                  <p className="text-gray-400 text-xs">
+                    Your free trial is active. Redirecting you to the download page…
+                  </p>
+                </>
+              )}
             </>
           )}
 

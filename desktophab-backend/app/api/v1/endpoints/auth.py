@@ -2,7 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from datetime import datetime, timezone
+
 from app.schemas.auth import LoginRequest, RegisterRequest, AuthResponse, VerifyEmailRequest
+from app.schemas.me import MeResponse
 from app.services.email import send_verification_email
 from app.core.config import settings
 from app.db.models import EmailVerification, User, PasswordReset
@@ -13,6 +16,9 @@ from sqlalchemy import select, func
 
 import secrets
 import string
+
+from app.core.dependencies import get_current_user
+from app.db.models import Subscription, App
 
 router = APIRouter()
 
@@ -133,6 +139,47 @@ async def refresh() -> AuthResponse:
 async def logout() -> dict:
   # TODO: implement logout / token revocation
   return {"success": True}
+
+
+@router.get("/auth/me", response_model=MeResponse)
+async def me(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)) -> MeResponse:
+    """
+    "Sync Now" endpoint for the desktop app: refresh user profile + subscription.
+    """
+    result = await db.execute(
+        select(Subscription)
+        .join(App, App.id == Subscription.app_id)
+        .where(
+            Subscription.user_id == current_user.id,
+            App.slug == "smartcalender",
+        )
+    )
+    sub = result.scalar_one_or_none()
+
+    sub_out = {
+        "tier": sub.tier.value if sub else "free",
+        "status": sub.status.value if sub else "expired",
+        "expires_at": sub.current_period_end if sub else None,
+        "features": sub.features if sub else [],
+    }
+
+    org = None
+    if current_user.organization_id:
+        org = {"id": current_user.organization_id, "name": current_user.organization_name}
+
+    return MeResponse(
+        user_id=str(current_user.id),
+        email=current_user.email,
+        name=current_user.name or "",
+        timezone=current_user.timezone or "UTC",
+        language=current_user.language or "en",
+        avatar_url=current_user.avatar_url,
+        organization=org,  # type: ignore[arg-type]
+        role=current_user.role.value if hasattr(current_user.role, "value") else str(current_user.role),
+        subscription=sub_out,  # type: ignore[arg-type]
+        subscription_expires_at=sub.current_period_end if sub else None,
+        server_timestamp=datetime.now(timezone.utc),
+    )
 
 
 @router.post("/auth/verify-email")

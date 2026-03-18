@@ -1,4 +1,7 @@
 from datetime import timedelta
+from sqlalchemy.exc import IntegrityError
+
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy import select
@@ -14,6 +17,7 @@ from app.services.paystack import init_transaction, verify_transaction
 from app.core.config import settings
 from app.core.security import decode_access_token
 from app.core.dependencies import get_db
+from app.core.dependencies import get_current_user
 from app.db.models import (
     App,
     Payment,
@@ -25,6 +29,8 @@ from app.db.models import (
     utcnow,
 )
 from app.services.email import send_receipt_email
+from app.realtime.state import manager as ws_manager, redis as ws_redis
+from app.realtime.pubsub import publish_user_event
 
 router = APIRouter()
 
@@ -54,9 +60,49 @@ async def get_or_create_app(db: AsyncSession, *, slug: str) -> App:
 
 
 @router.get("/subscription/status", response_model=SubscriptionStatusResponse)
-async def subscription_status() -> SubscriptionStatusResponse:
-    # TODO: implement real lookup based on authenticated user
-    raise HTTPException(status_code=501, detail="Not implemented")
+async def subscription_status(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SubscriptionStatusResponse:
+    """
+    Authoritative subscription status for the desktop app to refresh from.
+    """
+    app = await get_or_create_app(db, slug="smartcalender")
+    result = await db.execute(
+        select(Subscription).where(
+            Subscription.user_id == current_user.id,
+            Subscription.app_id == app.id,
+        )
+    )
+    sub = result.scalar_one_or_none()
+
+    if sub:
+        detail = {
+            "tier": sub.tier.value if hasattr(sub.tier, "value") else str(sub.tier),
+            "status": sub.status.value if hasattr(sub.status, "value") else str(sub.status),
+            "expires_at": sub.current_period_end,
+            "features": sub.features or [],
+            "trial_ends_at": sub.trial_ends_at,
+            "stripe_subscription_id": sub.stripe_subscription_id,
+        }
+        expires_at = sub.current_period_end
+    else:
+        detail = {
+            "tier": "free",
+            "status": "expired",
+            "expires_at": None,
+            "features": [],
+            "trial_ends_at": None,
+            "stripe_subscription_id": None,
+        }
+        expires_at = None
+
+    # Pydantic will coerce dict into SubscriptionDetail
+    return SubscriptionStatusResponse(
+        user_id=str(current_user.id),
+        subscription=detail,  # type: ignore[arg-type]
+        subscription_expires_at=expires_at,
+    )
 
 
 @router.post("/subscription/checkout", response_model=CheckoutSessionResponse)
@@ -75,6 +121,7 @@ async def create_checkout_session(req: CreateCheckoutRequest) -> CheckoutSession
             email=req.email,
             amount_kobo=amount_kobo,
             metadata={"app_slug": req.app_slug, "plan": "pro"},
+            callback_url=settings.PAYSTACK_CALLBACK_URL,
         )
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -120,6 +167,13 @@ async def renew_subscription(
     amount_kobo = 100  # TODO: compute from plan / app configuration
 
     try:
+        # Include kind in callback URL so frontend can reliably show "Account upgraded" (sessionStorage may be lost).
+        renewal_callback_url = settings.PAYSTACK_CALLBACK_URL
+        if "?" in renewal_callback_url:
+            renewal_callback_url = f"{renewal_callback_url}&kind=renewal"
+        else:
+            renewal_callback_url = f"{renewal_callback_url}?kind=renewal"
+
         checkout_url, reference = await init_transaction(
             email=user.email,
             amount_kobo=amount_kobo,
@@ -130,6 +184,7 @@ async def renew_subscription(
                 "user_id": str(user.id),
                 "app_id": str(app.id),
             },
+            callback_url=renewal_callback_url,
         )
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -191,7 +246,11 @@ async def verify_checkout(
     sub = result.scalar_one_or_none()
 
     now = utcnow()
-    period_end = now + timedelta(days=30)
+    # Extend from current expiry if already active; otherwise start from now.
+    base = now
+    if sub and sub.current_period_end and sub.current_period_end > now:
+        base = sub.current_period_end
+    period_end = base + timedelta(days=30)
 
     if sub:
         sub.status = SubscriptionStatus.active
@@ -210,20 +269,34 @@ async def verify_checkout(
         )
         db.add(sub)
 
-    # Record payment
+    # Record payment (idempotent)
     amount_usd = 1.00  # TODO: derive from Paystack amount / FX rate
-    payment = Payment(
-        user_id=user.id,
-        app_id=app.id,
-        amount_usd=amount_usd,
-        currency="usd",
-        status=PaymentStatus.succeeded,
-        description=f"{app.name} subscription ({kind})",
-        paystack_reference=reference,
-    )
-    db.add(payment)
+    if existing_payment:
+        existing_payment.user_id = user.id
+        existing_payment.app_id = app.id
+        existing_payment.amount_usd = amount_usd
+        existing_payment.currency = "usd"
+        existing_payment.status = PaymentStatus.succeeded
+        existing_payment.description = f"{app.name} subscription ({kind})"
+        payment = existing_payment
+    else:
+        payment = Payment(
+            user_id=user.id,
+            app_id=app.id,
+            amount_usd=amount_usd,
+            currency="usd",
+            status=PaymentStatus.succeeded,
+            description=f"{app.name} subscription ({kind})",
+            paystack_reference=reference,
+        )
+        db.add(payment)
 
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        # Another request recorded the same paystack reference concurrently.
+        await db.rollback()
+        return CheckoutSessionResponse(checkout_url="", session_id=reference)
 
     # Send email receipt (best-effort)
     try:
@@ -237,6 +310,15 @@ async def verify_checkout(
     except Exception:
         # Log inside email service; do not fail the request.
         pass
+
+    # Realtime push (signal only; desktop should refetch /subscription/status)
+    event_data = {
+        "status": "active",
+        "tier": "premium",
+        "expires_at": period_end.isoformat().replace("+00:00", "Z"),
+    }
+    await ws_manager.broadcast_user_event(str(user.id), "subscription.updated", event_data)
+    await publish_user_event(ws_redis, user_id=str(user.id), name="subscription.updated", data=event_data)
 
     return CheckoutSessionResponse(
         checkout_url="",

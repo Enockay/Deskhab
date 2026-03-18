@@ -9,7 +9,13 @@ from app.core.config import settings
 BASE_URL = "https://api.paystack.co"
 
 
-async def init_transaction(*, email: str, amount_kobo: int, metadata: dict | None = None) -> tuple[str, str]:
+async def init_transaction(
+    *,
+    email: str,
+    amount_kobo: int,
+    metadata: dict | None = None,
+    callback_url: str | None = None,
+) -> tuple[str, str]:
     """
     Initialize a Paystack transaction.
 
@@ -21,7 +27,7 @@ async def init_transaction(*, email: str, amount_kobo: int, metadata: dict | Non
     payload = {
         "email": email,
         "amount": amount_kobo,
-        "callback_url": settings.PAYSTACK_CALLBACK_URL,
+        "callback_url": callback_url or settings.PAYSTACK_CALLBACK_URL,
         "metadata": metadata or {},
     }
 

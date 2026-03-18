@@ -16,6 +16,7 @@ Routes:
 """
 
 from contextlib import asynccontextmanager
+import asyncio
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,9 +26,18 @@ from loguru import logger
 from app.core.config import settings
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.subscription import router as sub_router
+from app.api.v1.endpoints.ws import router as ws_router
 from app.db.session import async_engine, sync_engine
 from app.db.models import Base
 from app.admin.panel import create_admin
+from app.realtime.state import manager as ws_manager
+from app.realtime import state as realtime_state
+from app.realtime.pubsub import CHANNEL_PREFIX, subscribe_forever
+
+try:
+    from redis.asyncio import Redis
+except Exception:  # pragma: no cover
+    Redis = None  # type: ignore[assignment]
 
 
 @asynccontextmanager
@@ -37,8 +47,40 @@ async def lifespan(app: FastAPI):
     if settings.APP_ENV == "development":
         async with async_engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+
+    # Optional Redis Pub/Sub fanout for websocket events (multi-instance support)
+    task = None
+    if Redis and settings.REDIS_URL:
+        try:
+            realtime_state.redis = Redis.from_url(settings.REDIS_URL, decode_responses=True)
+
+            async def _runner():
+                pattern = f"{CHANNEL_PREFIX}*"
+                async for channel, raw in subscribe_forever(realtime_state.redis, pattern):
+                    try:
+                        import json
+                        msg = json.loads(raw)
+                        user_id = msg.get("user_id")
+                        name = msg.get("name")
+                        data = msg.get("data") or {}
+                        if user_id and name:
+                            await ws_manager.broadcast_user_event(user_id, name, data)
+                    except Exception:
+                        continue
+
+            task = asyncio.create_task(_runner())
+            logger.info("realtime redis pubsub enabled")
+        except Exception as exc:
+            logger.warning(f"realtime redis disabled: {exc}")
     yield
     logger.info("Shutting down")
+    if task:
+        task.cancel()
+    if realtime_state.redis:
+        try:
+            await realtime_state.redis.close()
+        except Exception:
+            pass
     await async_engine.dispose()
 
 
@@ -69,6 +111,7 @@ def create_app() -> FastAPI:
     # ── Routers ───────────────────────────────────────────────────────────────
     app.include_router(auth_router, prefix="/v1", tags=["Auth"])
     app.include_router(sub_router, prefix="/v1", tags=["Subscription"])
+    app.include_router(ws_router, prefix="/v1", tags=["Realtime"])
 
     # ── Admin panel ───────────────────────────────────────────────────────────
     # sqladmin uses the sync engine for its queries
