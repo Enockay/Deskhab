@@ -110,47 +110,81 @@ async def send_receipt_email(
         logger.warning("BREVO_API_KEY not set; skipping receipt email send.")
         return
 
+    # Human-friendly date
+    try:
+        from datetime import datetime
+        dt = datetime.fromisoformat(period_end_iso.replace("Z", "+00:00"))
+        period_end_human = dt.strftime("%b %d, %Y at %I:%M %p %Z").replace(" 0", " ")
+        if not period_end_human.strip():
+            period_end_human = period_end_iso
+    except Exception:
+        period_end_human = period_end_iso
+
     payload = {
         "to": [{"email": email}],
         "sender": {
             "email": settings.BREVO_SENDER_EMAIL,
             "name": settings.BREVO_SENDER_NAME,
         },
-        "subject": f"Your {app_name} subscription receipt",
+        "subject": f"Payment received — {app_name} subscription",
         "htmlContent": f"""
         <html>
           <body style="margin:0;padding:0;background-color:#020617;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
             <table width="100%" cellspacing="0" cellpadding="0" style="background:#020617;padding:32px 0;">
               <tr>
                 <td align="center">
-                  <table width="480" cellspacing="0" cellpadding="0" style="background:#020617;border-radius:24px;border:1px solid #1f2937;padding:32px;">
+                  <table width="520" cellspacing="0" cellpadding="0" style="background:#020617;border-radius:24px;border:1px solid #1f2937;padding:36px;">
                     <tr>
                       <td align="center" style="padding-bottom:24px;">
-                        <span style="font-size:20px;font-weight:700;color:#f9fafb;">
-                          Desk<span style="color:#6ee7b7;">Hab</span>
-                        </span>
+                        <table cellspacing="0" cellpadding="0">
+                          <tr>
+                            <td align="center" style="width:40px;height:40px;border-radius:16px;background:#10b981;">
+                              <span style="display:inline-block;width:20px;height:20px;background:#020617;border-radius:8px;"></span>
+                            </td>
+                            <td style="width:12px;"></td>
+                            <td style="font-size:20px;font-weight:800;color:#f9fafb;letter-spacing:-0.02em;">
+                              Desk<span style="color:#6ee7b7;">Hab</span>
+                            </td>
+                          </tr>
+                        </table>
                       </td>
                     </tr>
                     <tr>
-                      <td style="color:#e5e7eb;font-size:16px;font-weight:600;padding-bottom:8px;">
-                        Thanks for renewing {app_name} ✔
+                      <td style="color:#f9fafb;font-size:18px;font-weight:800;padding-bottom:6px;letter-spacing:-0.02em;">
+                        Payment received
                       </td>
                     </tr>
                     <tr>
-                      <td style="color:#9ca3af;font-size:14px;line-height:1.6;padding-bottom:16px;">
-                        We&apos;ve received your payment and your subscription is now active.
+                      <td style="color:#9ca3af;font-size:14px;line-height:1.65;padding-bottom:18px;">
+                        Your <span style="color:#e5e7eb;font-weight:700;">{app_name}</span> subscription is active.
+                        Keep building — we&apos;ve got you covered.
                       </td>
                     </tr>
                     <tr>
-                      <td style="background:#020617;border-radius:16px;border:1px solid #10b981;padding:16px 20px;color:#e5e7eb;font-size:14px;line-height:1.6;">
-                        <div style="margin-bottom:4px;"><strong>Amount:</strong> ${amount_usd:.2f} USD</div>
-                        <div style="margin-bottom:4px;"><strong>Next renewal:</strong> {period_end_iso}</div>
-                        <div style="margin-bottom:4px;"><strong>Reference:</strong> {reference}</div>
+                      <td style="background:#0b1220;border-radius:18px;border:1px solid rgba(16,185,129,0.45);padding:18px 20px;color:#e5e7eb;font-size:14px;line-height:1.6;">
+                        <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+                          <span style="color:#94a3b8;">Amount</span>
+                          <span style="color:#f8fafc;font-weight:800;">${amount_usd:.2f} USD</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+                          <span style="color:#94a3b8;">Product</span>
+                          <span style="color:#e5e7eb;font-weight:700;">{app_name}</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+                          <span style="color:#94a3b8;">Next renewal</span>
+                          <span style="color:#e5e7eb;font-weight:700;">{period_end_human}</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;">
+                          <span style="color:#94a3b8;">Reference</span>
+                          <span style="color:#e5e7eb;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;font-weight:700;">
+                            {reference}
+                          </span>
+                        </div>
                       </td>
                     </tr>
                     <tr>
-                      <td style="color:#6b7280;font-size:12px;line-height:1.6;padding-top:16px;border-top:1px solid #111827;">
-                        You can manage your subscription any time from the DesktopHab app.
+                      <td style="color:#6b7280;font-size:12px;line-height:1.6;padding-top:18px;border-top:1px solid #111827;">
+                        Manage your subscription anytime in the DesktopHab app.
                       </td>
                     </tr>
                   </table>

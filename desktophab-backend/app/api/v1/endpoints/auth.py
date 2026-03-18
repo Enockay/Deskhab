@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.auth import LoginRequest, AuthResponse, VerifyEmailRequest
+from app.schemas.auth import LoginRequest, RegisterRequest, AuthResponse, VerifyEmailRequest
 from app.services.email import send_verification_email
 from app.core.config import settings
 from app.db.models import EmailVerification, User, PasswordReset
@@ -37,7 +37,7 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)) -> Au
 
 
 @router.post("/auth/register")
-async def register(payload: LoginRequest, db: AsyncSession = Depends(get_db)) -> dict:
+async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db)) -> dict:
     """
     Temporary implementation:
     - generate a 6‑digit code
@@ -47,12 +47,29 @@ async def register(payload: LoginRequest, db: AsyncSession = Depends(get_db)) ->
     # Normalize email so duplicates can't slip through via casing/whitespace
     email = payload.email.strip().lower()
 
-    # Disallow multiple accounts with the same email (case-insensitive)
+    # If user already exists:
+    # - if verified: reject as duplicate
+    # - if not verified: allow continuing and just (re)send/reuse verification code
     existing_user = await db.execute(select(User).where(func.lower(User.email) == email))
     existing = existing_user.scalar_one_or_none()
-    if existing:
-        logger.info(f"Duplicate register attempt for existing email={email} user_id={existing.id}")
+    if existing and existing.is_email_verified:
+        logger.info(f"Duplicate register attempt for verified email={email} user_id={existing.id}")
         raise HTTPException(status_code=409, detail="An account with this email already exists")
+
+    # Ensure a user row exists before payment flow (Paystack verify looks up User by email).
+    if not existing:
+        from app.core.security import hash_password
+        user = User(
+            email=email,
+            hashed_password=hash_password(payload.password),
+            name=payload.name,
+            is_email_verified=False,
+        )
+        db.add(user)
+        await db.flush()
+        logger.info(f"User created pending verification email={email} user_id={user.id}")
+    else:
+        logger.info(f"Register continued for existing unverified email={email} user_id={existing.id}")
 
     # If there's already an unexpired, unconsumed verification, don't spam-create more
     from datetime import datetime, timezone
@@ -68,6 +85,7 @@ async def register(payload: LoginRequest, db: AsyncSession = Depends(get_db)) ->
     verification_row = existing_ver.scalar_one_or_none()
     if verification_row:
         logger.info(f"Register requested again for email={email}; reusing existing verification id={verification_row.id}")
+        await db.commit()
         return {"success": True}
 
     alphabet = string.digits

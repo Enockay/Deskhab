@@ -26,10 +26,10 @@ async function apiFetch(path, options = {}) {
 }
 
 export const authApi = {
-  async register({ email, password, remember_me }) {
+  async register({ email, password, remember_me, name }) {
     return apiFetch('/v1/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email, password, remember_me }),
+      body: JSON.stringify({ email, password, remember_me, name }),
     })
   },
   async verifyEmail({ email, code }) {

@@ -29,6 +29,30 @@ from app.services.email import send_receipt_email
 router = APIRouter()
 
 
+async def get_or_create_app(db: AsyncSession, *, slug: str) -> App:
+    """
+    Ensure an App row exists so subscription verification can attach payments/subscriptions.
+    """
+    result = await db.execute(select(App).where(App.slug == slug))
+    app = result.scalar_one_or_none()
+    if app:
+        return app
+
+    # Minimal defaults for SmartCalender
+    name = "SmartCalender" if slug == "smartcalender" else slug.replace("-", " ").title()
+    app = App(
+        slug=slug,
+        name=name,
+        monthly_price_usd=1.00,
+        trial_days=5,
+        is_active=True,
+    )
+    db.add(app)
+    await db.commit()
+    await db.refresh(app)
+    return app
+
+
 @router.get("/subscription/status", response_model=SubscriptionStatusResponse)
 async def subscription_status() -> SubscriptionStatusResponse:
     # TODO: implement real lookup based on authenticated user
@@ -91,10 +115,7 @@ async def renew_subscription(
     if not user:
         raise HTTPException(status_code=404, detail="User not found for renewal")
 
-    result = await db.execute(select(App).where(App.slug == req.app_slug))
-    app = result.scalar_one_or_none()
-    if not app:
-        raise HTTPException(status_code=404, detail="App not found")
+    app = await get_or_create_app(db, slug=req.app_slug)
 
     amount_kobo = 100  # TODO: compute from plan / app configuration
 
@@ -150,10 +171,15 @@ async def verify_checkout(
     if not user:
         raise HTTPException(status_code=404, detail="User not found for payment")
 
-    result = await db.execute(select(App).where(App.slug == app_slug))
-    app = result.scalar_one_or_none()
-    if not app:
-        raise HTTPException(status_code=404, detail="App not found")
+    app = await get_or_create_app(db, slug=app_slug)
+
+    # Idempotency: if we've already recorded this reference, don't create new rows or resend email.
+    existing_payment_res = await db.execute(
+        select(Payment).where(Payment.paystack_reference == reference)
+    )
+    existing_payment = existing_payment_res.scalar_one_or_none()
+    if existing_payment and existing_payment.status == PaymentStatus.succeeded:
+        return CheckoutSessionResponse(checkout_url="", session_id=reference)
 
     # Upsert subscription
     result = await db.execute(
@@ -193,6 +219,7 @@ async def verify_checkout(
         currency="usd",
         status=PaymentStatus.succeeded,
         description=f"{app.name} subscription ({kind})",
+        paystack_reference=reference,
     )
     db.add(payment)
 

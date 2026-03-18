@@ -173,6 +173,9 @@ class Payment(Base):
     status = Column(Enum(PaymentStatus), default=PaymentStatus.pending, nullable=False)
     description = Column(String(255))
 
+    # Paystack
+    paystack_reference = Column(String(64), unique=True, index=True)
+
     # Stripe
     stripe_payment_intent_id = Column(String(64), unique=True, index=True)
     stripe_invoice_id = Column(String(64))

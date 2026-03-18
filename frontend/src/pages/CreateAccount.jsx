@@ -65,6 +65,7 @@ export default function CreateAccount() {
         email: form.email,
         password: form.password,
         remember_me: false,
+        name: form.fullName,
       })
       // After we create the account we move into email verification step.
       navigate(`/verify-email?email=${encodeURIComponent(form.email)}${res?.code ? `&code=${res.code}` : ''}`)

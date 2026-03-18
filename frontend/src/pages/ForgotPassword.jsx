@@ -1,13 +1,20 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import StepHeader from '../components/StepHeader'
 import { authApi } from '../lib/api'
 
 export default function ForgotPassword() {
+  const [searchParams] = useSearchParams()
+  const emailFromQuery = searchParams.get('email') || ''
+
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (emailFromQuery && !email) setEmail(emailFromQuery)
+  }, [emailFromQuery])
 
   const submit = async (e) => {
     e.preventDefault()
@@ -57,6 +64,7 @@ export default function ForgotPassword() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   type="email"
+                  autoFocus
                   required
                   className="px-3.5 py-2.5 rounded-xl bg-white/6 border border-white/12 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                   placeholder="you@example.com"
