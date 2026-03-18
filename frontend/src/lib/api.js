@@ -46,6 +46,17 @@ export const authApi = {
       method: 'POST',
     })
   },
+  async forgotPassword(email) {
+    return apiFetch(`/v1/auth/forgot-password?email=${encodeURIComponent(email)}`, {
+      method: 'POST',
+    })
+  },
+  async resetPassword({ token, newPassword }) {
+    return apiFetch(
+      `/v1/auth/reset-password?token=${encodeURIComponent(token)}&new_password=${encodeURIComponent(newPassword)}`,
+      { method: 'POST' },
+    )
+  },
 }
 
 export const subscriptionApi = {

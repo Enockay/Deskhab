@@ -215,6 +215,19 @@ class EmailVerification(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+# ─── Password reset tokens ─────────────────────────────────────────────────────
+
+class PasswordReset(Base):
+    __tablename__ = "password_resets"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email = Column(String(255), nullable=False, index=True)
+    token_hash = Column(String(128), nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    consumed = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 # ─── Admin users ──────────────────────────────────────────────────────────────
 
 class AdminUser(Base):

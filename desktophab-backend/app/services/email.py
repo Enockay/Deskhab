@@ -173,3 +173,65 @@ async def send_receipt_email(
         except Exception as exc:  # pragma: no cover - best‑effort logging
             logger.error(f"Failed to send receipt email to {email}: {exc}")
 
+
+async def send_password_reset_email(email: str, *, reset_url: str) -> None:
+    """
+    Send a password reset link via Brevo.
+    """
+    if not settings.BREVO_API_KEY:
+        logger.warning("BREVO_API_KEY not set; skipping password reset email send.")
+        return
+
+    payload = {
+        "to": [{"email": email}],
+        "sender": {"email": settings.BREVO_SENDER_EMAIL, "name": settings.BREVO_SENDER_NAME},
+        "subject": "Reset your DesktopHab password",
+        "htmlContent": f"""
+        <html>
+          <body style="margin:0;padding:0;background-color:#020617;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+            <table width="100%" cellspacing="0" cellpadding="0" style="background:#020617;padding:32px 0;">
+              <tr>
+                <td align="center">
+                  <table width="480" cellspacing="0" cellpadding="0" style="background:#020617;border-radius:24px;border:1px solid #1f2937;padding:32px;">
+                    <tr>
+                      <td style="color:#e5e7eb;font-size:16px;font-weight:700;padding-bottom:8px;">
+                        Password reset
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="color:#9ca3af;font-size:14px;line-height:1.6;padding-bottom:18px;">
+                        Click the button below to set a new password. This link expires soon.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td align="center" style="padding-bottom:18px;">
+                        <a href="{reset_url}" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#10b981;color:#020617;text-decoration:none;font-weight:700;font-size:14px;">
+                          Reset password
+                        </a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="color:#6b7280;font-size:12px;line-height:1.6;">
+                        If you didn&apos;t request this, you can ignore this email.
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </body>
+        </html>
+        """,
+    }
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        try:
+            resp = await client.post(
+                "https://api.brevo.com/v3/smtp/email",
+                json=payload,
+                headers={"api-key": settings.BREVO_API_KEY, "accept": "application/json"},
+            )
+            resp.raise_for_status()
+        except Exception as exc:  # pragma: no cover
+            logger.error(f"Failed to send password reset email to {email}: {exc}")
+

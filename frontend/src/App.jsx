@@ -12,6 +12,8 @@ import Download from './pages/Download'
 import VerifyEmail from './pages/VerifyEmail'
 import PaymentCallback from './pages/PaymentCallback'
 import RenewSmartCalender from './pages/RenewSmartCalender'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 
 /* ── layout pages ─────────────────────────────────────────── */
 
@@ -58,6 +60,8 @@ export default function App() {
 
         {/* Full-screen auth / checkout pages (no header/footer) */}
         <Route path="/create-account" element={<CreateAccount />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/payment" element={<PaymentProcessing />} />
         <Route path="/payment/callback" element={<PaymentCallback />} />
