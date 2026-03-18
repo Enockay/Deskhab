@@ -51,12 +51,13 @@ class AuthService:
     # ── Register ──────────────────────────────────────────────────────────────
 
     async def register(self, req: RegisterRequest) -> AuthResponse:
-        existing = await self._get_user_by_email(req.email)
+        email = req.email.strip().lower()
+        existing = await self._get_user_by_email(email)
         if existing:
             raise ValueError("An account with this email already exists")
 
         user = User(
-            email=req.email,
+            email=email,
             hashed_password=hash_password(req.password),
             name=req.name,
         )

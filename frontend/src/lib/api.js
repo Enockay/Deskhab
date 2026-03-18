@@ -38,6 +38,14 @@ export const authApi = {
       body: JSON.stringify({ email, code }),
     })
   },
+  async emailStatus(email) {
+    return apiFetch(`/v1/auth/email-status?email=${encodeURIComponent(email)}`)
+  },
+  async resendCode(email) {
+    return apiFetch(`/v1/auth/resend-code?email=${encodeURIComponent(email)}`, {
+      method: 'POST',
+    })
+  },
 }
 
 export const subscriptionApi = {

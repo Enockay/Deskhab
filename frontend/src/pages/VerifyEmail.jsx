@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import StepHeader from '../components/StepHeader'
 import { authApi } from '../lib/api'
@@ -12,11 +12,39 @@ export default function VerifyEmail() {
   const navigate = useNavigate()
   const query = useQuery()
   const emailFromQuery = query.get('email') || ''
+  const codeFromQuery = query.get('code') || ''
 
   const [email] = useState(emailFromQuery)
-  const [code, setCode] = useState('')
+  const [code, setCode] = useState(codeFromQuery)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
+
+  // If the email is already verified, skip this step.
+  useEffect(() => {
+    let cancelled = false
+    async function run() {
+      if (!email) return
+      try {
+        const res = await authApi.emailStatus(email)
+        if (!cancelled && res?.is_verified) {
+          navigate(`/payment?email=${encodeURIComponent(email)}`)
+        }
+      } catch {
+        // best-effort; don't block UI
+      }
+    }
+    run()
+    return () => { cancelled = true }
+  }, [email])
+
+  // Cooldown ticker
+  useEffect(() => {
+    if (!resendCooldown) return
+    const t = setInterval(() => setResendCooldown((s) => Math.max(0, s - 1)), 1000)
+    return () => clearInterval(t)
+  }, [resendCooldown])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -33,6 +61,26 @@ export default function VerifyEmail() {
       setError(err.message || 'Invalid or expired code. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleResend = async () => {
+    if (!email || resendLoading || resendCooldown) return
+    setError('')
+    setResendLoading(true)
+    try {
+      const res = await authApi.resendCode(email)
+      if (res?.skipped) {
+        navigate(`/payment?email=${encodeURIComponent(email)}`)
+        return
+      }
+      setResendCooldown(60)
+      // In dev, backend may return the code for faster testing
+      if (res?.code) setCode(String(res.code))
+    } catch (err) {
+      setError(err.message || 'Could not resend code. Please try again.')
+    } finally {
+      setResendLoading(false)
     }
   }
 
@@ -101,6 +149,24 @@ export default function VerifyEmail() {
             >
               {loading ? 'Verifying…' : 'Verify and continue'}
             </button>
+
+            <div className="flex items-center justify-between pt-1">
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resendLoading || resendCooldown > 0}
+                className="text-[11px] font-medium text-emerald-300 hover:text-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {resendLoading
+                  ? 'Resending…'
+                  : resendCooldown > 0
+                    ? `Resend code in ${resendCooldown}s`
+                    : 'Resend code'}
+              </button>
+              <span className="text-[11px] text-gray-500">
+                Didn&apos;t get it? Check spam.
+              </span>
+            </div>
           </form>
         </div>
       </div>
