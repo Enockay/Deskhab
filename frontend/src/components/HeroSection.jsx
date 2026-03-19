@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { appsApi } from '../lib/api'
+import { detectPlatform } from '../lib/os'
 
 import dashboardImg from '../assets/dashboard.png'
 import remindersImg from '../assets/reminders.png'
@@ -14,12 +16,29 @@ const StatCard = ({ value, label }) => (
   </div>
 )
 
-const FeaturePill = ({ icon, text }) => (
-  <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/8 border border-white/10 text-sm text-gray-300">
-    <span>{icon}</span>
-    <span>{text}</span>
-  </div>
-)
+const FeaturePill = ({ icon, text, href, loading, isRecommended }) => {
+  const disabled = loading || !href
+  return (
+    <a
+      href={disabled ? '#' : href}
+      onClick={(e) => {
+        if (disabled) e.preventDefault()
+      }}
+      className={`group relative flex items-center gap-2 px-5 py-2.5 rounded-full border text-sm transition-all duration-200
+      ${isRecommended
+        ? 'border-emerald-400/70 bg-emerald-500/15 text-emerald-100 shadow-[0_0_30px_rgba(16,185,129,0.25)]'
+        : 'bg-white/8 border-white/10 text-gray-300 hover:border-emerald-300/60 hover:text-white'} ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+    >
+      <span>{icon}</span>
+      <span>{text}</span>
+      {isRecommended && (
+        <span className="ml-1 rounded-full border border-emerald-300/40 bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-emerald-100">
+          Recommended
+        </span>
+      )}
+    </a>
+  )
+}
 
 const previewTabs = [
   { id: 'dashboard', label: 'Dashboard', img: dashboardImg },
@@ -31,8 +50,55 @@ const previewTabs = [
 
 export default function HeroSection() {
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [autoPlatform, setAutoPlatform] = useState('other')
+  const [downloadLinks, setDownloadLinks] = useState({})
+  const [downloadsLoading, setDownloadsLoading] = useState(true)
 
   const active = previewTabs.find((tab) => tab.id === activeTab) ?? previewTabs[0]
+  const recommendedPlatform = ['macos', 'windows', 'linux'].includes(autoPlatform) ? autoPlatform : 'macos'
+
+  useEffect(() => {
+    setAutoPlatform(detectPlatform())
+  }, [])
+
+  useEffect(() => {
+    const isSignedS3Url = (url) => {
+      if (typeof url !== 'string' || !url.trim()) return false
+      try {
+        const parsed = new URL(url)
+        const params = parsed.searchParams
+        const hasSigV4 = params.has('X-Amz-Signature')
+        const hasSigV2 = params.has('AWSAccessKeyId') && params.has('Signature') && params.has('Expires')
+        return hasSigV4 || hasSigV2
+      } catch {
+        return false
+      }
+    }
+
+    const run = async () => {
+      setDownloadsLoading(true)
+      try {
+        const platformKeys = ['macos', 'windows', 'linux']
+        const results = await Promise.all(
+          platformKeys.map((platform) =>
+            appsApi.getLatestReleaseArtifact({ appSlug: 'smartcalender', platform, channel: 'stable' }),
+          ),
+        )
+
+        const next = {}
+        for (const r of results) {
+          const url = r?.artifact?.url
+          next[r.platform] = isSignedS3Url(url) ? url : null
+        }
+        setDownloadLinks(next)
+      } catch {
+        setDownloadLinks({})
+      } finally {
+        setDownloadsLoading(false)
+      }
+    }
+    run()
+  }, [])
 
   return (
     <section className="relative bg-[#0d0f14] overflow-hidden">
@@ -89,9 +155,27 @@ export default function HeroSection() {
 
         {/* Platform pills */}
         <div className="flex flex-wrap justify-center gap-3 mb-16">
-          <FeaturePill icon="⊕" text="macOS" />
-          <FeaturePill icon="▢" text="Windows" />
-          <FeaturePill icon="👤" text="Linux" />
+          <FeaturePill
+            icon="⊕"
+            text="macOS"
+            href={downloadLinks.macos}
+            loading={downloadsLoading}
+            isRecommended={recommendedPlatform === 'macos'}
+          />
+          <FeaturePill
+            icon="▢"
+            text="Windows"
+            href={downloadLinks.windows}
+            loading={downloadsLoading}
+            isRecommended={recommendedPlatform === 'windows'}
+          />
+          <FeaturePill
+            icon="👤"
+            text="Linux"
+            href={downloadLinks.linux}
+            loading={downloadsLoading}
+            isRecommended={recommendedPlatform === 'linux'}
+          />
         </div>
 
         {/* SmartCalender stats strip */}

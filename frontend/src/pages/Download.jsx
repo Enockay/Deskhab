@@ -48,6 +48,27 @@ const recommendedAnimStyles = `
   }
 `
 
+function isSignedS3Url(url) {
+  if (typeof url !== 'string' || !url.trim()) return false
+  try {
+    const parsed = new URL(url)
+    const params = parsed.searchParams
+
+    // SigV4 query auth
+    const hasSigV4 = params.has('X-Amz-Signature')
+
+    // SigV2 query auth (older style)
+    const hasSigV2 =
+      params.has('AWSAccessKeyId') &&
+      params.has('Signature') &&
+      params.has('Expires')
+
+    return hasSigV4 || hasSigV2
+  } catch {
+    return false
+  }
+}
+
 export default function Download() {
   const [autoPlatform, setAutoPlatform] = useState('other')
   const [releaseLinks, setReleaseLinks] = useState({}) // { macos: { url, version }, ... }
@@ -75,7 +96,7 @@ export default function Download() {
           const url = r?.artifact?.url
           // The backend should return a presigned URL (signed). If it doesn't,
           // prevent broken redirects and show a clear error.
-          const isSigned = typeof url === 'string' && url.includes('X-Amz-Signature')
+          const isSigned = isSignedS3Url(url)
           if (!isSigned) {
             setReleasesError('Download URLs are not signed yet. Please refresh after backend update.')
             next[r.platform] = { url: null, version: r.version }
@@ -98,6 +119,7 @@ export default function Download() {
     { key: 'windows', label: 'Windows', tag: 'EXE', badge: 'Most popular' },
     { key: 'linux', label: 'Linux', tag: 'AppImage', badge: 'For power users' },
   ]
+  const recommendedPlatform = ['macos', 'windows', 'linux'].includes(autoPlatform) ? autoPlatform : 'macos'
 
   return (
     <div className="min-h-screen bg-[#0d0f14] flex items-center justify-center px-4 py-16">
@@ -126,7 +148,7 @@ export default function Download() {
           {/* Platform cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
             {platforms.map(({ key, label, href, tag, badge }) => {
-              const isRec = key === 'macos'
+              const isRec = key === recommendedPlatform
               const link = releaseLinks[key]?.url
               const disabled = releasesLoading || !link
               return (

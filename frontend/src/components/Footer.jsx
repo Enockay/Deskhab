@@ -180,9 +180,23 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="border-t border-white/8 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-gray-500">
+          <div className="flex flex-col items-center sm:items-start gap-1">
+            <p className="text-sm text-gray-500">
             © {new Date().getFullYear()} DesktopHab, Inc. All rights reserved.
-          </p>
+            </p>
+            <p className="text-xs text-gray-500">
+              Designed by
+           
+            <a
+              href="https://blackie-networks.com"
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs  ml-1 text-emerald-300 hover:text-emerald-200 transition-colors"
+            >
+              blackie-networks
+            </a>
+            </p>
+          </div>
           <div className="flex items-center gap-1 text-sm text-gray-500">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             All systems operational
