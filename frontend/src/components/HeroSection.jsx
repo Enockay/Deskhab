@@ -53,6 +53,7 @@ export default function HeroSection() {
   const [autoPlatform, setAutoPlatform] = useState('other')
   const [downloadLinks, setDownloadLinks] = useState({})
   const [downloadsLoading, setDownloadsLoading] = useState(true)
+  const [latestVersion, setLatestVersion] = useState('1.0')
 
   const active = previewTabs.find((tab) => tab.id === activeTab) ?? previewTabs[0]
   const recommendedPlatform = ['macos', 'windows', 'linux'].includes(autoPlatform) ? autoPlatform : 'macos'
@@ -86,11 +87,21 @@ export default function HeroSection() {
         )
 
         const next = {}
+        const versionsByPlatform = {}
         for (const r of results) {
           const url = r?.artifact?.url
+          versionsByPlatform[r.platform] = r?.version || null
           next[r.platform] = isSignedS3Url(url) ? url : null
         }
         setDownloadLinks(next)
+        const preferredVersion =
+          versionsByPlatform[recommendedPlatform] ||
+          versionsByPlatform.macos ||
+          versionsByPlatform.windows ||
+          versionsByPlatform.linux
+        if (preferredVersion) {
+          setLatestVersion(preferredVersion)
+        }
       } catch {
         setDownloadLinks({})
       } finally {
@@ -116,7 +127,7 @@ export default function HeroSection() {
         <div className="inline-flex items-center gap-2 px-5 py-1.5 rounded-full border border-emerald-500/30
                         bg-emerald-500/10 text-emerald-300 text-sm font-medium mb-8">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          SmartCalender v1.0 — now available
+          SmartCalender v{latestVersion} — now available
         </div>
 
         {/* Headline */}

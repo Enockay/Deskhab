@@ -90,13 +90,6 @@ export default function Header() {
           {/* CTA buttons */}
           <div className="hidden md:flex items-center gap-2">
             <Link
-              to="/signin"
-              className="px-5 py-2 rounded-xl text-sm font-semibold text-white border border-white/20
-                         hover:border-white/40 hover:bg-white/8 transition-all"
-            >
-              Sign in
-            </Link>
-            <Link
               to="/create-account"
               className="px-5 py-2 rounded-xl text-sm font-semibold text-white border border-white/20
                          bg-white/8 hover:bg-white/14 hover:border-white/40 transition-all"
@@ -163,10 +156,6 @@ export default function Header() {
             </button>
           ))}
           <div className="border-t border-white/10 pt-3 mt-1 flex flex-col gap-2">
-            <Link to="/signin" onClick={() => setMobileOpen(false)}
-              className="px-4 py-3 rounded-xl text-sm font-semibold text-white border border-white/20 text-center hover:bg-white/8 transition-colors">
-              Sign in
-            </Link>
             <Link to="/create-account" onClick={() => setMobileOpen(false)}
               className="px-4 py-3 rounded-xl text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 text-center transition-colors">
               Get started free

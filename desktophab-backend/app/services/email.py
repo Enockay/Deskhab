@@ -291,3 +291,65 @@ async def send_password_reset_email(email: str, *, reset_url: str) -> None:
         except Exception as exc:  # pragma: no cover
             logger.error(f"Failed to send password reset email to {email}: {exc}")
 
+
+async def send_post_verification_login_email(email: str) -> None:
+    """
+    Send a post-verification login reminder email.
+    NOTE: We intentionally do not send raw passwords by email.
+    """
+    if not settings.BREVO_API_KEY:
+        logger.warning("BREVO_API_KEY not set; skipping post-verification login email send.")
+        return
+
+    payload = {
+        "to": [{"email": email}],
+        "sender": {"email": settings.BREVO_SENDER_EMAIL, "name": settings.BREVO_SENDER_NAME},
+        "subject": "Your DesktopHab account is verified",
+        "htmlContent": f"""
+        <html>
+          <body style="margin:0;padding:0;background-color:#020617;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+            <table width="100%" cellspacing="0" cellpadding="0" style="background:#020617;padding:32px 0;">
+              <tr>
+                <td align="center">
+                  <table width="520" cellspacing="0" cellpadding="0" style="background:#020617;border-radius:24px;border:1px solid #1f2937;padding:32px;">
+                    <tr>
+                      <td style="color:#e5e7eb;font-size:18px;font-weight:700;padding-bottom:8px;">
+                        You&apos;re verified and ready to sign in
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="color:#9ca3af;font-size:14px;line-height:1.6;padding-bottom:14px;">
+                        Your DesktopHab email verification is complete.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="background:#0b1220;border-radius:14px;border:1px solid rgba(16,185,129,0.35);padding:12px 14px;color:#e5e7eb;font-size:14px;line-height:1.65;">
+                        <strong>Login email:</strong> {email}<br/>
+                        <strong>Password:</strong> the one you created during sign-up.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="color:#6b7280;font-size:12px;line-height:1.6;padding-top:14px;">
+                        For security, DesktopHab never sends raw passwords by email.
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </body>
+        </html>
+        """,
+    }
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        try:
+            resp = await client.post(
+                "https://api.brevo.com/v3/smtp/email",
+                json=payload,
+                headers={"api-key": settings.BREVO_API_KEY, "accept": "application/json"},
+            )
+            resp.raise_for_status()
+        except Exception as exc:  # pragma: no cover
+            logger.error(f"Failed to send post-verification login email to {email}: {exc}")
+

@@ -131,17 +131,26 @@ export default function Download() {
         </div>
 
         <div className="mb-10">
-          <StepHeader current={3} className="max-w-xs" />
+          <StepHeader current={4} className="max-w-xs" />
         </div>
 
         <div className="rounded-3xl border border-white/8 bg-gradient-to-b from-[#171924] via-[#13151f] to-[#0e1017] px-6 py-10 sm:px-10 sm:py-12 shadow-[0_18px_45px_rgba(0,0,0,0.7)]">
           <div className="text-center mb-10">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-3 tracking-tight">
-              You&apos;re all set. Download DesktopHab.
+            <h1 className="text-3xl sm:text-4xl font-extrabold mb-3 tracking-tight">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-cyan-200 to-sky-300 drop-shadow-[0_0_20px_rgba(16,185,129,0.35)]">
+                You&apos;re all set.
+              </span>
             </h1>
-            <p className="text-gray-400 text-sm sm:text-base max-w-2xl mx-auto">
-              Your subscription is active. Choose your platform below to download the SmartCalender app,
-              then sign in with the account you just created.
+            <p className="text-sm sm:text-base max-w-3xl mx-auto leading-relaxed">
+              <span className="text-gray-300">
+                Your subscription is active.
+              </span>{' '}
+              <span className="text-cyan-200/90">
+                If you already have the app installed, go back and sign in.
+              </span>{' '}
+              <span className="text-emerald-200/90">
+                If you don&apos;t have it yet, download it below.
+              </span>
             </p>
           </div>
 
@@ -213,7 +222,8 @@ export default function Download() {
               You&apos;re good to go. First month is $1, then renewals are $2/month.
             </p>
             <p className="text-[11px] text-gray-500">
-              Next step: install DesktopHab, open the app, and sign in with the email you just used to create your account.
+              Next step: open DesktopHab and sign in with the email you used to create your account.
+              If the app is not installed yet, download your platform build above.
             </p>
           </div>
 

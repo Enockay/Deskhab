@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 from app.schemas.auth import LoginRequest, RegisterRequest, AuthResponse, VerifyEmailRequest
 from app.schemas.me import MeResponse
-from app.services.email import send_verification_email
+from app.services.email import send_verification_email, send_post_verification_login_email
 from app.core.config import settings
 from app.db.models import EmailVerification, User, PasswordReset
 from app.db.session import AsyncSessionLocal
@@ -219,6 +219,12 @@ async def verify_email(payload: VerifyEmailRequest, db: AsyncSession = Depends(g
 
     await db.commit()
 
+    # Best-effort: send login reminder details after successful verification.
+    try:
+        await send_post_verification_login_email(email=email)
+    except Exception as exc:
+        logger.warning(f"post-verification login email failed for email={email}: {exc}")
+
     return {"success": True}
 
 
@@ -339,7 +345,7 @@ async def forgot_password(
     )
     await db.commit()
 
-    reset_url = f"{settings.SITE_URL.rstrip('/')}/reset-password?token={raw}"
+    reset_url = f"{settings.PASSWORD_RESET_BASE_URL.rstrip('/')}/reset-password?token={raw}"
     try:
         await send_password_reset_email(normalized, reset_url=reset_url)
         logger.info(f"forgot-password email sent email={normalized} user_id={user.id}")

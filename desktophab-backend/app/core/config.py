@@ -62,8 +62,9 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
 
     # URLs
-    SITE_URL: str = "https://desktophab.com"
-    RENEWAL_BASE_URL: str = "https://desktophab.com/renew-smartcalender"
+    SITE_URL: str = "https://deskhab.com"
+    RENEWAL_BASE_URL: str = "https://deskhab.com/renew-smartcalender"
+    PASSWORD_RESET_BASE_URL: str = "https://www.deskhab.com"
 
     @property
     def allowed_origins_list(self) -> list[str]:

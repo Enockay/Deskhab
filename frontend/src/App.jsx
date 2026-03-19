@@ -6,6 +6,7 @@ import FeaturesSection from './components/FeaturesSection'
 import HowItWorksSection from './components/HowItWorksSection'
 import PricingSection from './components/PricingSection'
 import Footer from './components/Footer'
+import Seo from './components/Seo'
 import CreateAccount from './pages/CreateAccount'
 import PaymentProcessing from './pages/PaymentProcessing'
 import Download from './pages/Download'
@@ -22,8 +23,29 @@ import AdminAuthProvider from './context/AdminAuthContext'
 
 /** Home page: hero + pricing */
 function HomePage() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'SmartCalender',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'macOS, Windows, Linux',
+    offers: {
+      '@type': 'Offer',
+      price: '1',
+      priceCurrency: 'USD',
+      description: 'First month $1, renewals $2/month',
+    },
+    url: 'https://www.deskhab.com/',
+  }
+
   return (
     <main>
+      <Seo
+        title="DesktopHab | SmartCalender for Teams"
+        description="SmartCalender from DesktopHab helps you plan meetings, tasks, and reminders on macOS, Windows, and Linux. First month is $1, renewals are $2/month."
+        canonicalPath="/"
+        jsonLd={jsonLd}
+      />
       <HeroSection />
       <FeaturesSection />
       <HowItWorksSection />
@@ -36,6 +58,11 @@ function HomePage() {
 function PricingPage() {
   return (
     <main className="pt-8">
+      <Seo
+        title="Pricing | DesktopHab SmartCalender"
+        description="DesktopHab SmartCalender pricing: first month is $1 USD, then renewals are $2/month across macOS, Windows, and Linux."
+        canonicalPath="/pricing"
+      />
       <PricingSection />
     </main>
   )
@@ -62,22 +89,23 @@ export default function App() {
         <Route path="/pricing" element={<Layout><PricingPage /></Layout>} />
 
         {/* Full-screen auth / checkout pages (no header/footer) */}
-        <Route path="/create-account" element={<CreateAccount />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/payment" element={<PaymentProcessing />} />
-        <Route path="/payment/callback" element={<PaymentCallback />} />
-        <Route path="/renew-smartcalender/:slug" element={<RenewSmartCalender />} />
-        <Route path="/download" element={<Download />} />
+        <Route path="/create-account" element={<><Seo title="Create Account" description="Create your DesktopHab account to access SmartCalender for desktop." canonicalPath="/create-account" noindex /><CreateAccount /></>} />
+        <Route path="/forgot-password" element={<><Seo title="Forgot Password" description="Reset your DesktopHab account password." canonicalPath="/forgot-password" noindex /><ForgotPassword /></>} />
+        <Route path="/reset-password" element={<><Seo title="Reset Password" description="Set a new password for your DesktopHab account." canonicalPath="/reset-password" noindex /><ResetPassword /></>} />
+        <Route path="/verify-email" element={<><Seo title="Verify Email" description="Verify your email to continue with DesktopHab account setup." canonicalPath="/verify-email" noindex /><VerifyEmail /></>} />
+        <Route path="/payment" element={<><Seo title="Checkout" description="Complete your SmartCalender payment with DesktopHab." canonicalPath="/payment" noindex /><PaymentProcessing /></>} />
+        <Route path="/payment/callback" element={<><Seo title="Payment Confirmation" description="Verifying your DesktopHab payment." canonicalPath="/payment/callback" noindex /><PaymentCallback /></>} />
+        <Route path="/renew-smartcalender/:slug" element={<><Seo title="Renew Subscription" description="Renew your SmartCalender subscription." canonicalPath="/renew-smartcalender" noindex /><RenewSmartCalender /></>} />
+        <Route path="/download" element={<><Seo title="Download SmartCalender" description="Download SmartCalender for macOS, Windows, or Linux from DesktopHab." canonicalPath="/download" noindex /><Download /></>} />
 
         {/* Admin (SPA) */}
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/*" element={<AdminAuthProvider><AdminDashboard /></AdminAuthProvider>} />
+        <Route path="/admin/login" element={<><Seo title="Admin Login" description="DesktopHab admin login." canonicalPath="/admin/login" noindex /><AdminLogin /></>} />
+        <Route path="/admin/*" element={<><Seo title="Admin Dashboard" description="DesktopHab admin panel." canonicalPath="/admin" noindex /><AdminAuthProvider><AdminDashboard /></AdminAuthProvider></>} />
 
         {/* Fallback */}
         <Route path="*" element={
           <Layout>
+            <Seo title="404 | DesktopHab" description="Page not found on DesktopHab." canonicalPath="/404" noindex />
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
               <h1 className="text-6xl font-extrabold text-white mb-4">404</h1>
               <p className="text-gray-400 text-lg mb-8">This page doesn't exist.</p>
