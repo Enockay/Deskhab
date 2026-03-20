@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -68,4 +70,38 @@ async def get_latest_release(
             file_size_bytes=artifact.file_size_bytes,
         ),
     )
+
+
+@router.get("/apps/{app_slug}/images")
+async def get_app_images(
+    app_slug: str,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    app_slug_norm = (app_slug or "").strip().lower()
+    if not app_slug_norm:
+        raise HTTPException(status_code=400, detail="app_slug_required")
+
+    res_app = await db.execute(select(App).where(App.slug == app_slug_norm))
+    app = res_app.scalar_one_or_none()
+    if not app or not app.is_active:
+        raise HTTPException(status_code=404, detail="App not found")
+
+    image_keys = {}
+    raw = (app.description or "").strip()
+    if raw:
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, dict) and isinstance(parsed.get("image_keys"), dict):
+                image_keys = parsed.get("image_keys") or {}
+        except Exception:
+            image_keys = {}
+
+    images: dict[str, str] = {}
+    for tab, key in image_keys.items():
+        try:
+            images[tab] = generate_presigned_get_url(key, expires_in=3600)
+        except Exception:
+            continue
+
+    return {"app_slug": app.slug, "images": images}
 

@@ -3,12 +3,6 @@ import { Link } from 'react-router-dom'
 import { appsApi } from '../lib/api'
 import { detectPlatform } from '../lib/os'
 
-import dashboardImg from '../assets/dashboard.png'
-import remindersImg from '../assets/reminders.png'
-import todoListImg from '../assets/todolist.png'
-import taskboardImg from '../assets/taskboard.png'
-import yearTodoImg from '../assets/yeartodo.png'
-
 const StatCard = ({ value, label }) => (
   <div className="flex flex-col items-center gap-1">
     <span className="text-2xl sm:text-3xl font-bold text-emerald-400">{value}</span>
@@ -41,11 +35,11 @@ const FeaturePill = ({ icon, text, href, loading, isRecommended }) => {
 }
 
 const previewTabs = [
-  { id: 'dashboard', label: 'Dashboard', img: dashboardImg },
-  { id: 'reminders', label: 'Reminders', img: remindersImg },
-  { id: 'todolist', label: 'Todo List', img: todoListImg },
-  { id: 'taskboard', label: 'Tasks Board', img: taskboardImg },
-  { id: 'year', label: 'Year view', img: yearTodoImg },
+  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'reminders', label: 'Reminders' },
+  { id: 'todolist', label: 'Todo List' },
+  { id: 'taskboard', label: 'Tasks Board' },
+  { id: 'year', label: 'Year view' },
 ]
 
 export default function HeroSection() {
@@ -54,8 +48,16 @@ export default function HeroSection() {
   const [downloadLinks, setDownloadLinks] = useState({})
   const [downloadsLoading, setDownloadsLoading] = useState(true)
   const [latestVersion, setLatestVersion] = useState('1.0')
+  const [remoteImages, setRemoteImages] = useState({})
+  const [imagesLoading, setImagesLoading] = useState(true)
+  const [loadedImageBySrc, setLoadedImageBySrc] = useState({})
 
-  const active = previewTabs.find((tab) => tab.id === activeTab) ?? previewTabs[0]
+  const resolvedTabs = previewTabs.map((tab) => ({
+    ...tab,
+    img: remoteImages[tab.id] || '',
+  }))
+  const active = resolvedTabs.find((tab) => tab.id === activeTab) ?? resolvedTabs[0]
+  const activeImageLoading = !!active?.img && !loadedImageBySrc[active.img]
   const recommendedPlatform = ['macos', 'windows', 'linux'].includes(autoPlatform) ? autoPlatform : 'macos'
 
   useEffect(() => {
@@ -106,6 +108,21 @@ export default function HeroSection() {
         setDownloadLinks({})
       } finally {
         setDownloadsLoading(false)
+      }
+    }
+    run()
+  }, [])
+
+  useEffect(() => {
+    const run = async () => {
+      setImagesLoading(true)
+      try {
+        const res = await appsApi.getAppImages({ appSlug: 'smartcalender' })
+        setRemoteImages(res?.images || {})
+      } catch {
+        setRemoteImages({})
+      } finally {
+        setImagesLoading(false)
       }
     }
     run()
@@ -207,7 +224,7 @@ export default function HeroSection() {
 
           {/* Tabs */}
           <div className="relative z-10 mb-4 flex flex-wrap gap-2 justify-center">
-            {previewTabs.map((tab) => (
+            {resolvedTabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
@@ -230,12 +247,28 @@ export default function HeroSection() {
 
             <div className="relative group">
               <div className="mx-auto max-w-5xl px-6 pt-6 pb-8 md:px-10 md:pt-8 md:pb-10">
-                <img
-                  key={active.id}
-                  src={active.img}
-                  alt={active.label}
-                  className="w-full h-auto max-h-[520px] object-contain rounded-[32px] shadow-[0_22px_60px_rgba(15,23,42,0.85)] transform transition-all duration-700 ease-out group-hover:scale-[1.02] group-hover:-translate-y-1"
-                />
+                {imagesLoading || activeImageLoading ? (
+                  <div className="w-full h-[320px] md:h-[420px] rounded-[32px] border border-white/10 bg-black/25 flex items-center justify-center">
+                    <span className="h-8 w-8 rounded-full border-2 border-emerald-300/80 border-t-transparent animate-spin" />
+                  </div>
+                ) : null}
+                {active?.img ? (
+                  <img
+                    key={active.id}
+                    src={active.img}
+                    alt={active.label}
+                    onLoad={() => {
+                      setLoadedImageBySrc((prev) => ({ ...prev, [active.img]: true }))
+                    }}
+                    className={`w-full h-auto max-h-[520px] object-contain rounded-[32px] shadow-[0_22px_60px_rgba(15,23,42,0.85)] transform transition-all duration-700 ease-out group-hover:scale-[1.02] group-hover:-translate-y-1 ${imagesLoading || activeImageLoading ? 'hidden' : 'block'}`}
+                  />
+                ) : (
+                  !imagesLoading && (
+                    <div className="w-full h-[320px] md:h-[420px] rounded-[32px] border border-dashed border-white/15 bg-black/20 flex items-center justify-center text-sm text-gray-400">
+                      No image yet
+                    </div>
+                  )
+                )}
               </div>
 
               {/* Base glow under the window */}

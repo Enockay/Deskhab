@@ -3,15 +3,16 @@ const API_BASE_URL =
 
 async function apiFetch(path, options = {}) {
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
-  const headers = { ...(options.headers || {}) }
+  const optionHeaders = { ...(options.headers || {}) }
+  const headers = { ...optionHeaders }
   if (!isFormData) {
     headers['Content-Type'] = 'application/json'
   }
   const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
     headers: {
       ...headers,
     },
-    ...options,
   })
 
   // Global admin auth handling: if token expired/invalid, redirect the admin to login.
@@ -25,7 +26,20 @@ async function apiFetch(path, options = {}) {
     let message = 'Request failed'
     try {
       const data = await res.json()
-      message = data.detail || data.error || JSON.stringify(data)
+      const detail = data?.detail
+      if (Array.isArray(detail)) {
+        // FastAPI validation errors arrive as an array of {loc,msg,type}
+        message = detail
+          .map((d) => {
+            const where = Array.isArray(d?.loc) ? d.loc.join('.') : 'field'
+            return `${where}: ${d?.msg || 'Invalid value'}`
+          })
+          .join(' | ')
+      } else if (detail && typeof detail === 'object') {
+        message = JSON.stringify(detail)
+      } else {
+        message = detail || data?.error || JSON.stringify(data)
+      }
     } catch {
       message = await res.text()
     }
@@ -298,12 +312,48 @@ export const adminApi = {
     })
   },
 
+  async createApp(body) {
+    const token = getAdminAccessToken()
+    return apiFetch('/v1/admin/apps', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+
   async updateApp(appId, body) {
     const token = getAdminAccessToken()
     return apiFetch(`/v1/admin/apps/${encodeURIComponent(appId)}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
+    })
+  },
+
+  async listAppImages(appId) {
+    const token = getAdminAccessToken()
+    return apiFetch(`/v1/admin/apps/${encodeURIComponent(appId)}/images`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+
+  async uploadAppImage(appId, { tab, file }) {
+    const token = getAdminAccessToken()
+    const formData = new FormData()
+    formData.append('tab', tab)
+    formData.append('image_file', file)
+    return apiFetch(`/v1/admin/apps/${encodeURIComponent(appId)}/images`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    })
+  },
+
+  async deleteAppImage(appId, tab) {
+    const token = getAdminAccessToken()
+    return apiFetch(`/v1/admin/apps/${encodeURIComponent(appId)}/images/${encodeURIComponent(tab)}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
     })
   },
 

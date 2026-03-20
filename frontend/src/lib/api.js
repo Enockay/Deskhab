@@ -93,4 +93,7 @@ export const appsApi = {
       `/v1/apps/${encodeURIComponent(appSlug)}/releases/latest?platform=${encodeURIComponent(platform)}&channel=${encodeURIComponent(channel)}`
     )
   },
+  async getAppImages({ appSlug }) {
+    return apiFetch(`/v1/apps/${encodeURIComponent(appSlug)}/images`)
+  },
 }
