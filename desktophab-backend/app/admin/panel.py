@@ -146,7 +146,7 @@ def create_admin(app, engine) -> Admin:
         app=app,
         engine=engine,
         authentication_backend=authentication_backend,
-        title="DesktopHab Admin",
+        title="Deskhab Admin",
         base_url="/admin",
     )
     admin.add_view(UserAdmin)

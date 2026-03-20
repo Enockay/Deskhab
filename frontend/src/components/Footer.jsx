@@ -13,7 +13,7 @@ const Logo = () => (
       </svg>
     </div>
     <span className="text-lg font-bold">
-      <span className="text-white">Desktop</span>
+      <span className="text-white">Desk</span>
       <span className="text-emerald-400">Hab</span>
     </span>
   </Link>
@@ -182,7 +182,7 @@ export default function Footer() {
         <div className="border-t border-white/8 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex flex-col items-center sm:items-start gap-1">
             <p className="text-sm text-gray-500">
-            © {new Date().getFullYear()} DesktopHab, Inc. All rights reserved.
+            © {new Date().getFullYear()} Deskhab, Inc. All rights reserved.
             </p>
             <p className="text-xs text-gray-500">
               Designed by

@@ -40,7 +40,7 @@ export default function ForgotPassword() {
         <Link to="/" className="flex items-center justify-center gap-3 mb-8">
           <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center" />
           <span className="text-xl font-bold">
-            <span className="text-white">Desktop</span>
+            <span className="text-white">Desk</span>
             <span className="text-emerald-400">Hab</span>
           </span>
         </Link>

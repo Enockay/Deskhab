@@ -51,8 +51,8 @@ async def get_or_create_app(db: AsyncSession, *, slug: str) -> App:
     app = App(
         slug=slug,
         name=name,
-        monthly_price_usd=1.00,
-        trial_days=0,  # No free trial: first paid month is charged immediately.
+        monthly_price_usd=2.00,
+        trial_days=5,
         is_active=True,
     )
     db.add(app)
@@ -117,8 +117,8 @@ async def create_checkout_session(req: CreateCheckoutRequest) -> CheckoutSession
 
     # Amount in the smallest currency unit Paystack expects.
     # If your Paystack currency is USD, then:
-    #   100 = $1.00
-    amount_kobo = 100  # $1 initial checkout
+    #   200 = $2.00
+    amount_kobo = 200
 
     try:
         checkout_url, reference = await init_transaction(
@@ -292,7 +292,7 @@ async def verify_checkout(
         db.add(sub)
 
     # Record payment (idempotent)
-    amount_usd = 2.00 if kind == "renewal" else 1.00
+    amount_usd = 2.00
     if existing_payment:
         existing_payment.user_id = user.id
         existing_payment.app_id = app.id

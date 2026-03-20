@@ -1,5 +1,5 @@
 """
-DesktopHab API — entry point.
+Deskhab API — entry point.
 
 Routes:
   GET  /v1/health
@@ -56,7 +56,7 @@ except Exception:  # pragma: no cover
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info(f"Starting DesktopHab API [{settings.APP_ENV}]")
+    logger.info(f"Starting Deskhab API [{settings.APP_ENV}]")
     # Tables are managed by Alembic in production; auto-create only in dev
     if settings.APP_ENV == "development":
         async with async_engine.begin() as conn:
@@ -137,8 +137,8 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="DesktopHab API",
-        description="Backend API for DesktopHab — SmartCalender and future desktop apps.",
+        title="Deskhab API",
+        description="Backend API for Deskhab — SmartCalender and future desktop apps.",
         version="1.0.0",
         docs_url="/docs" if not settings.is_production else None,
         redoc_url="/redoc" if not settings.is_production else None,
@@ -157,7 +157,7 @@ def create_app() -> FastAPI:
     # ── Health check ──────────────────────────────────────────────────────────
     @app.get("/v1/health")
     async def health():
-        return {"status": "ok", "service": "DesktopHab API"}
+        return {"status": "ok", "service": "Deskhab API"}
 
     # ── Routers ───────────────────────────────────────────────────────────────
     app.include_router(auth_router, prefix="/v1", tags=["Auth"])

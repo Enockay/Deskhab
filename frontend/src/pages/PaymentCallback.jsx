@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { subscriptionApi } from '../lib/api'
 import StepHeader from '../components/StepHeader'
+import AnimatedTick from '../components/AnimatedTick'
 
 function useQuery() {
   const { search } = useLocation()
@@ -35,6 +36,7 @@ export default function PaymentCallback() {
 
         // If this was a renewal flow, keep user on this screen (desktop app will unlock via socket).
         if (checkoutKind !== 'renewal') {
+          try { sessionStorage.setItem('download_flow_kind', checkoutKind) } catch {}
           setTimeout(() => navigate('/download'), 1200)
         }
       } catch (err) {
@@ -59,7 +61,7 @@ export default function PaymentCallback() {
             </svg>
           </div>
           <span className="text-xl font-bold">
-            <span className="text-white">Desktop</span>
+            <span className="text-white">Desk</span>
             <span className="text-emerald-400">Hab</span>
           </span>
         </Link>
@@ -86,9 +88,12 @@ export default function PaymentCallback() {
             <>
               {checkoutKind === 'renewal' ? (
                 <>
-                  <h1 className="text-xl font-bold text-white mb-2">Account upgraded ✅</h1>
+                  <div className="flex items-center justify-center mb-3">
+                    <AnimatedTick size={64} />
+                  </div>
+                  <h1 className="text-xl font-bold text-white mb-2">Subscription renewed ✅</h1>
                   <p className="text-gray-400 text-xs mb-4">
-                    Your subscription is active. You can return to the DesktopHab app — it will unlock automatically.
+                    Your subscription is active. You can return to SmartCalender — it will unlock automatically so you can keep scheduling.
                   </p>
                   <Link
                     to="/"
@@ -99,6 +104,9 @@ export default function PaymentCallback() {
                 </>
               ) : (
                 <>
+                  <div className="flex items-center justify-center mb-3">
+                    <AnimatedTick size={64} />
+                  </div>
                   <h1 className="text-xl font-bold text-white mb-2">Payment verified ✅</h1>
                   <p className="text-gray-400 text-xs">
                     Your payment is verified. Redirecting you to the download page…

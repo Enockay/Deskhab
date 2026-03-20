@@ -29,7 +29,8 @@ export default function VerifyEmail() {
       try {
         const res = await authApi.emailStatus(email)
         if (!cancelled && res?.is_verified) {
-          navigate(`/payment?email=${encodeURIComponent(email)}`)
+          try { sessionStorage.setItem('download_flow_kind', 'trial') } catch {}
+          navigate(`/download`)
         }
       } catch {
         // best-effort; don't block UI
@@ -56,7 +57,8 @@ export default function VerifyEmail() {
     setLoading(true)
     try {
       await authApi.verifyEmail({ email, code })
-      navigate(`/payment?email=${encodeURIComponent(email)}`)
+      try { sessionStorage.setItem('download_flow_kind', 'trial') } catch {}
+      navigate(`/download`)
     } catch (err) {
       setError(err.message || 'Invalid or expired code. Please try again.')
     } finally {
@@ -71,7 +73,8 @@ export default function VerifyEmail() {
     try {
       const res = await authApi.resendCode(email)
       if (res?.skipped) {
-        navigate(`/payment?email=${encodeURIComponent(email)}`)
+        try { sessionStorage.setItem('download_flow_kind', 'trial') } catch {}
+        navigate(`/download`)
         return
       }
       setResendCooldown(60)
@@ -102,7 +105,7 @@ export default function VerifyEmail() {
             </svg>
           </div>
           <span className="text-xl font-bold">
-            <span className="text-white">Desktop</span>
+            <span className="text-white">Desk</span>
             <span className="text-emerald-400">Hab</span>
           </span>
         </Link>
@@ -113,7 +116,7 @@ export default function VerifyEmail() {
           <h1 className="text-xl font-bold text-white mb-2">Check your email</h1>
           <p className="text-gray-400 text-xs mb-5">
             We&apos;ve sent a 6‑digit verification code to <span className="text-emerald-300 font-medium">{email}</span>.
-            Enter it below to continue to payment.
+            Enter it below to continue.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">

@@ -6,6 +6,9 @@ from loguru import logger
 from app.core.config import settings
 
 
+LOGO_URL = f"{settings.SITE_URL.rstrip('/')}/deskhablogo.png"
+
+
 async def send_verification_email(email: str, code: str, name: str | None = None) -> None:
     """
     Send a simple verification email with a 6‑digit code via Brevo.
@@ -22,7 +25,7 @@ async def send_verification_email(email: str, code: str, name: str | None = None
             "email": settings.BREVO_SENDER_EMAIL,
             "name": settings.BREVO_SENDER_NAME,
         },
-        "subject": "Verify your DesktopHab account",
+        "subject": "Verify your Deskhab account",
         "htmlContent": f"""
         <html>
           <body style="margin:0;padding:0;background-color:#020617;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
@@ -32,17 +35,12 @@ async def send_verification_email(email: str, code: str, name: str | None = None
                   <table width="480" cellspacing="0" cellpadding="0" style="background:#020617;border-radius:24px;border:1px solid #1f2937;padding:32px;">
                     <tr>
                       <td align="center" style="padding-bottom:24px;">
-                        <table cellspacing="0" cellpadding="0">
-                          <tr>
-                            <td align="center" style="width:40px;height:40px;border-radius:16px;background:#10b981;">
-                              <span style="display:inline-block;width:20px;height:20px;background:#020617;border-radius:8px;"></span>
-                            </td>
-                            <td style="width:12px;"></td>
-                            <td style="font-size:20px;font-weight:700;color:#f9fafb;">
-                              Desk<span style="color:#6ee7b7;">Hab</span>
-                            </td>
-                          </tr>
-                        </table>
+                        <img
+                          src="{LOGO_URL}"
+                          alt="Deskhab"
+                          width="240"
+                          style="display:block;border:0;outline:none;text-decoration:none;max-width:240px;height:auto;"
+                        />
                       </td>
                     </tr>
                     <tr>
@@ -52,7 +50,7 @@ async def send_verification_email(email: str, code: str, name: str | None = None
                     </tr>
                     <tr>
                       <td style="color:#9ca3af;font-size:14px;line-height:1.6;padding-bottom:16px;">
-                        Thanks for creating a DesktopHab account. Use the verification code below to confirm your email address.
+                        Thanks for creating a Deskhab account. Use the verification code below to confirm your email address.
                       </td>
                     </tr>
                     <tr>
@@ -71,7 +69,7 @@ async def send_verification_email(email: str, code: str, name: str | None = None
                     </tr>
                     <tr>
                       <td style="color:#4b5563;font-size:11px;padding-top:8px;border-top:1px solid #111827;">
-                        Sent securely from DesktopHab • Do not reply to this automated message.
+                        Sent securely from Deskhab • Do not reply to this automated message.
                       </td>
                     </tr>
                   </table>
@@ -139,17 +137,12 @@ async def send_receipt_email(
                         <table width="640" cellspacing="0" cellpadding="0" style="width:640px;max-width:100%;background:#020617;border-radius:24px;border:1px solid #1f2937;padding:20px;">
                     <tr>
                       <td align="center" style="padding-bottom:14px;">
-                        <table cellspacing="0" cellpadding="0">
-                          <tr>
-                            <td align="center" style="width:40px;height:40px;border-radius:16px;background:#10b981;">
-                              <span style="display:inline-block;width:20px;height:20px;background:#020617;border-radius:8px;"></span>
-                            </td>
-                            <td style="width:12px;"></td>
-                            <td style="font-size:20px;font-weight:800;color:#f9fafb;letter-spacing:-0.02em;">
-                              Desk<span style="color:#6ee7b7;">Hab</span>
-                            </td>
-                          </tr>
-                        </table>
+                        <img
+                          src="{LOGO_URL}"
+                          alt="Deskhab"
+                          width="240"
+                          style="display:block;border:0;outline:none;text-decoration:none;max-width:240px;height:auto;"
+                        />
                       </td>
                     </tr>
                     <tr>
@@ -203,7 +196,7 @@ async def send_receipt_email(
                     </tr>
                     <tr>
                       <td style="color:#6b7280;font-size:12px;line-height:1.6;padding-top:12px;border-top:1px solid #111827;">
-                        You can manage your subscription anytime in the DesktopHab app.
+                        You can manage your subscription anytime in the Deskhab app.
                       </td>
                     </tr>
                         </table>
@@ -241,7 +234,7 @@ async def send_password_reset_email(email: str, *, reset_url: str) -> None:
     payload = {
         "to": [{"email": email}],
         "sender": {"email": settings.BREVO_SENDER_EMAIL, "name": settings.BREVO_SENDER_NAME},
-        "subject": "Reset your DesktopHab password",
+        "subject": "Reset your Deskhab password",
         "htmlContent": f"""
         <html>
           <body style="margin:0;padding:0;background-color:#020617;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
@@ -304,7 +297,7 @@ async def send_post_verification_login_email(email: str) -> None:
     payload = {
         "to": [{"email": email}],
         "sender": {"email": settings.BREVO_SENDER_EMAIL, "name": settings.BREVO_SENDER_NAME},
-        "subject": "Your DesktopHab account is verified",
+        "subject": "Your Deskhab account is verified",
         "htmlContent": f"""
         <html>
           <body style="margin:0;padding:0;background-color:#020617;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
@@ -319,7 +312,7 @@ async def send_post_verification_login_email(email: str) -> None:
                     </tr>
                     <tr>
                       <td style="color:#9ca3af;font-size:14px;line-height:1.6;padding-bottom:14px;">
-                        Your DesktopHab email verification is complete.
+                        Your Deskhab email verification is complete.
                       </td>
                     </tr>
                     <tr>
@@ -330,7 +323,7 @@ async def send_post_verification_login_email(email: str) -> None:
                     </tr>
                     <tr>
                       <td style="color:#6b7280;font-size:12px;line-height:1.6;padding-top:14px;">
-                        For security, DesktopHab never sends raw passwords by email.
+                        For security, Deskhab never sends raw passwords by email.
                       </td>
                     </tr>
                   </table>

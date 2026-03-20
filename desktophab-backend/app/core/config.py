@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # App
-    APP_NAME: str = "DesktopHab"
+    APP_NAME: str = "Deskhab"
     APP_ENV: str = "development"
     SECRET_KEY: str
     DEBUG: bool = False
@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     # Email (Brevo)
     BREVO_API_KEY: str | None = None
     BREVO_SENDER_EMAIL: str = "no-reply@deskhab.com"
-    BREVO_SENDER_NAME: str = "DeskHab"
+    BREVO_SENDER_NAME: str = "Deskhab"
 
     # JWT
     JWT_SECRET_KEY: str

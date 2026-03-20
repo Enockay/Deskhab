@@ -140,8 +140,8 @@ export default function HeroSection() {
 
         {/* Subline */}
         <p className="max-w-2xl mx-auto text-lg sm:text-xl text-gray-400 leading-relaxed mb-10">
-          DesktopHab delivers native productivity software for macOS, Windows & Linux.
-          Start with SmartCalender — first month is $1, then renewals are $2/month.
+          Deskhab delivers native productivity software for macOS, Windows & Linux.
+          Start with SmartCalender — 5-day free trial, then $2/month.
         </p>
 
         {/* CTAs */}
@@ -192,9 +192,9 @@ export default function HeroSection() {
         {/* SmartCalender stats strip */}
         <div className="inline-flex flex-wrap justify-center items-center gap-10 px-12 py-6
                         rounded-xl bg-emerald-500/8 border border-emerald-400/40 mb-10 shadow-[0_18px_60px_rgba(16,185,129,0.25)]">
-          <StatCard value="$1" label="first month" />
+          <StatCard value="5 days" label="free trial" />
           <div className="hidden sm:block w-px h-10 bg-emerald-400/40" />
-          <StatCard value="$2" label="then $2/month" />
+          <StatCard value="$2" label="per month" />
           <div className="hidden sm:block w-px h-10 bg-emerald-400/40" />
           <StatCard value="3 OS" label="platforms" />
           <div className="hidden sm:block w-px h-10 bg-emerald-400/40" />

@@ -1,6 +1,6 @@
-# DesktopHab Backend API
+# Deskhab Backend API
 
-FastAPI backend for DesktopHab — serving authentication, subscriptions, billing, and admin for SmartCalender and future desktop apps.
+FastAPI backend for Deskhab — serving authentication, subscriptions, billing, and admin for SmartCalender and future desktop apps.
 
 ## Stack
 - **Python 3.11+** / FastAPI

@@ -52,7 +52,7 @@ export default function PaymentProcessing() {
             </svg>
           </div>
           <span className="text-xl font-bold">
-            <span className="text-white">Desktop</span>
+            <span className="text-white">Desk</span>
             <span className="text-emerald-400">Hab</span>
           </span>
         </Link>
@@ -64,7 +64,7 @@ export default function PaymentProcessing() {
             <>
               <h1 className="text-xl font-bold text-white mb-2">Redirecting to Paystack…</h1>
               <p className="text-gray-400 text-xs mb-4">
-                We&apos;re opening a secure Paystack checkout to start your subscription payment ($1 first month).
+                We&apos;re opening a secure Paystack checkout for your $2/month subscription.
               </p>
               <div className="flex items-center justify-center">
                 <svg className="w-6 h-6 animate-spin text-emerald-400" fill="none" viewBox="0 0 24 24">

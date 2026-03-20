@@ -18,7 +18,7 @@ import secrets
 import string
 
 from app.core.dependencies import get_current_user
-from app.db.models import Subscription, App
+from app.db.models import Subscription, App, SubscriptionStatus, SubscriptionTier
 
 router = APIRouter()
 
@@ -216,6 +216,43 @@ async def verify_email(payload: VerifyEmailRequest, db: AsyncSession = Depends(g
 
     if existing_user:
         existing_user.is_email_verified = True
+        # Start user with a 5-day trial (no upfront charge).
+        app_res = await db.execute(select(App).where(App.slug == "smartcalender"))
+        app = app_res.scalar_one_or_none()
+        if not app:
+            app = App(
+                slug="smartcalender",
+                name="SmartCalender",
+                monthly_price_usd=2.00,
+                trial_days=5,
+                is_active=True,
+            )
+            db.add(app)
+            await db.flush()
+
+        sub_res = await db.execute(
+            select(Subscription).where(
+                Subscription.user_id == existing_user.id,
+                Subscription.app_id == app.id,
+            )
+        )
+        sub = sub_res.scalar_one_or_none()
+        if not sub:
+            from datetime import timedelta
+
+            now = datetime.now(timezone.utc)
+            trial_end = now + timedelta(days=max(1, int(app.trial_days or 5)))
+            sub = Subscription(
+                user_id=existing_user.id,
+                app_id=app.id,
+                tier=SubscriptionTier.premium,
+                status=SubscriptionStatus.trial,
+                features=["all_views", "tasks_board", "reminders", "advanced_reminders"],
+                trial_ends_at=trial_end,
+                current_period_start=now,
+                current_period_end=trial_end,
+            )
+            db.add(sub)
 
     await db.commit()
 

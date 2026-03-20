@@ -1,5 +1,5 @@
 """
-SQLAlchemy ORM models for DesktopHab.
+SQLAlchemy ORM models for deskhab.
 
 Tables:
   users              - registered accounts (desktop app users + admins)
@@ -86,8 +86,8 @@ class App(Base):
     name = Column(String(128), nullable=False)                 # "SmartCalender"
     description = Column(Text)
     stripe_price_id = Column(String(128))                      # Stripe price ID
-    monthly_price_usd = Column(Numeric(10, 2), default=1.00)
-    trial_days = Column(Integer, default=0)
+    monthly_price_usd = Column(Numeric(10, 2), default=2.00)
+    trial_days = Column(Integer, default=5)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -146,7 +146,7 @@ class Subscription(Base):
     app_id = Column(UUID(as_uuid=True), ForeignKey("apps.id"), nullable=False)
 
     tier = Column(Enum(SubscriptionTier), default=SubscriptionTier.free, nullable=False)
-    status = Column(Enum(SubscriptionStatus), default=SubscriptionStatus.expired, nullable=False)
+    status = Column(Enum(SubscriptionStatus), default=SubscriptionStatus.trial, nullable=False)
     features = Column(JSON, default=list)          # ["calendar_sync", "advanced_reminders"]
 
     # Dates

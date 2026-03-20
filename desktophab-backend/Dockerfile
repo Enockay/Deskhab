@@ -1,4 +1,4 @@
-# Multi-stage build for DesktopHab Backend
+# Multi-stage build for Deskhab Backend
 FROM python:3.11-slim as builder
 
 # Set working directory

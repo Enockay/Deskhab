@@ -92,7 +92,7 @@ export default function AdminUsers() {
       <div className="rounded-md border border-white/10 bg-gradient-to-b from-[#171924] via-[#13151f] to-[#0e1017] p-4">
         <h2 className="text-lg font-extrabold">Users</h2>
         <p className="text-xs text-gray-400">
-          Search, view, and manage DesktopHab users.
+          Search, view, and manage Deskhab users.
         </p>
       </div>
 

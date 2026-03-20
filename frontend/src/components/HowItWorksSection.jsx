@@ -2,17 +2,17 @@ const steps = [
   {
     number: 1,
     title: 'Create account',
-    body: 'Register free on DesktopHab. No credit card needed to start.',
+    body: 'Register free on Deskhab. No credit card needed to start.',
   },
   {
     number: 2,
-    title: 'Add payment',
-    body: 'Pay $1 for your first month.',
+    title: 'Start free trial',
+    body: 'Get 5 days of full access at no charge.',
   },
   {
     number: 3,
-    title: 'Renew monthly',
-    body: 'After month one, renewals are $2/month.',
+    title: 'Continue at $2/month',
+    body: 'After trial ends, billing continues at $2/month.',
   },
   {
     number: 4,

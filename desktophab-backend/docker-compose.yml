@@ -25,7 +25,7 @@ services:
     container_name: deskhab-backend
     environment:
       # App
-      APP_NAME: ${APP_NAME:-DesktopHab}
+      APP_NAME: ${APP_NAME:-deskhab}
       APP_ENV: ${APP_ENV:-production}
       SECRET_KEY: ${SECRET_KEY}
       DEBUG: ${DEBUG:-False}

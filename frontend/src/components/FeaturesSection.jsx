@@ -31,7 +31,7 @@ const features = [
     icon: '👤',
     badge: 'Account-based login',
     title: 'Account-based login',
-    body: 'Create your account on DesktopHab, log in on the app — your plan unlocks instantly.',
+    body: 'Create your account on Deskhab, log in on the app — your plan unlocks instantly.',
     accent: 'from-sky-500/30 to-sky-500/5',
   },
   {

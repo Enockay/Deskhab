@@ -102,7 +102,7 @@ export default function CreateAccount() {
             </svg>
           </div>
           <span className="text-xl font-bold">
-            <span className="text-white">Desktop</span>
+            <span className="text-white">Desk</span>
             <span className="text-emerald-400">Hab</span>
           </span>
         </Link>
@@ -120,7 +120,7 @@ export default function CreateAccount() {
               <div className="flex flex-wrap items-baseline gap-x-1 gap-y-0.5">
                 <span>Starting your</span>
                 <span className="capitalize font-bold">{plan}</span>
-                <span>— first month $1, then renewals $2/month.</span>
+                <span>— 5-day free trial, then $2/month.</span>
               </div>
             </div>
           )}

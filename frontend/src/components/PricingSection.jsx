@@ -31,10 +31,10 @@ export default function PricingSection() {
             Pricing
           </p>
           <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-3">
-            First month $1, then $2/month.
+            5-day free trial, then $2/month.
           </h2>
           <p className="text-base sm:text-lg text-gray-400 max-w-2xl mx-auto">
-            Pay $1 for month one. After that, renewals are $2/month.
+            Start free for 5 days. After trial, billing is $2/month.
           </p>
         </div>
 
@@ -51,11 +51,11 @@ export default function PricingSection() {
               </p>
 
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-5xl font-extrabold text-white">$1</span>
-                <span className="text-sm text-gray-400 mt-3">/first month</span>
+                <span className="text-5xl font-extrabold text-white">$2</span>
+                <span className="text-sm text-gray-400 mt-3">/month</span>
               </div>
               <div className="text-[12px] text-emerald-200/90 mb-4">
-                Renewals are $2/month.
+                Includes a 5-day free trial.
               </div>
 
               <p className="text-sm text-gray-300 max-w-md">
@@ -76,7 +76,7 @@ export default function PricingSection() {
 
               <div className="mt-2 space-y-3">
                 <div className="w-full rounded-xl border border-amber-500/60 bg-amber-500/10 px-4 py-3 text-center text-xs sm:text-sm text-amber-100 font-medium">
-                  First month is $1. Renewals are $2/month.
+                  Start with a 5-day free trial, then $2/month.
                 </div>
                 <Link
                   to="/create-account?plan=pro"

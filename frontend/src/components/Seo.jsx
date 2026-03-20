@@ -1,10 +1,10 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 
-const DEFAULT_SITE_NAME = 'DesktopHab'
-const DEFAULT_TITLE = 'DesktopHab | SmartCalender for macOS, Windows and Linux'
+const DEFAULT_SITE_NAME = 'Deskhab'
+const DEFAULT_TITLE = 'Deskhab | SmartCalender for macOS, Windows and Linux'
 const DEFAULT_DESCRIPTION =
-  'DesktopHab builds productivity desktop apps. SmartCalender helps teams plan meetings, tasks, and reminders across macOS, Windows, and Linux.'
+  'Deskhab builds productivity desktop apps. SmartCalender helps teams plan meetings, tasks, and reminders across macOS, Windows, and Linux.'
 const DEFAULT_IMAGE = 'https://www.deskhab.com/favicon.svg'
 const SITE_URL = import.meta.env.VITE_SITE_URL || 'https://www.deskhab.com'
 
@@ -53,7 +53,7 @@ export default function Seo({
   useEffect(() => {
     const path = canonicalPath || `${location.pathname}${location.search || ''}`
     const canonicalUrl = new URL(path, SITE_URL).toString()
-    const fullTitle = title.includes('DesktopHab') ? title : `${title} | DesktopHab`
+    const fullTitle = title.includes('Deskhab') ? title : `${title} | Deskhab`
 
     document.title = fullTitle
 

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import StepHeader from '../components/StepHeader'
 import { detectPlatform } from '../lib/os'
 import { appsApi } from '../lib/api'
+import AnimatedTick from '../components/AnimatedTick'
 
 const recommendedAnimStyles = `
   @keyframes borderBreath {
@@ -74,9 +75,21 @@ export default function Download() {
   const [releaseLinks, setReleaseLinks] = useState({}) // { macos: { url, version }, ... }
   const [releasesLoading, setReleasesLoading] = useState(true)
   const [releasesError, setReleasesError] = useState('')
+  const [downloadFlowKind, setDownloadFlowKind] = useState('') // e.g. 'trial'
 
   useEffect(() => {
     setAutoPlatform(detectPlatform())
+  }, [])
+
+  useEffect(() => {
+    // Used to tailor the success copy (trial vs renewal vs other flows).
+    try {
+      const kind = sessionStorage.getItem('download_flow_kind') || ''
+      setDownloadFlowKind(kind)
+      sessionStorage.removeItem('download_flow_kind')
+    } catch {
+      // Ignore if sessionStorage is unavailable.
+    }
   }, [])
 
   useEffect(() => {
@@ -136,22 +149,29 @@ export default function Download() {
 
         <div className="rounded-3xl border border-white/8 bg-gradient-to-b from-[#171924] via-[#13151f] to-[#0e1017] px-6 py-10 sm:px-10 sm:py-12 shadow-[0_18px_45px_rgba(0,0,0,0.7)]">
           <div className="text-center mb-10">
+            <div className="mb-4">
+              <AnimatedTick />
+            </div>
+
             <h1 className="text-3xl sm:text-4xl font-extrabold mb-3 tracking-tight">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-cyan-200 to-sky-300 drop-shadow-[0_0_20px_rgba(16,185,129,0.35)]">
                 You&apos;re all set.
               </span>
             </h1>
-            <p className="text-sm sm:text-base max-w-3xl mx-auto leading-relaxed">
-              <span className="text-gray-300">
-                Your subscription is active.
-              </span>{' '}
-              <span className="text-cyan-200/90">
-                If you already have the app installed, go back and sign in.
-              </span>{' '}
-              <span className="text-emerald-200/90">
-                If you don&apos;t have it yet, download it below.
-              </span>
-            </p>
+
+            {downloadFlowKind === 'trial' ? (
+              <p className="text-sm sm:text-base max-w-3xl mx-auto leading-relaxed">
+                <span className="text-gray-300">Your free 5 days are now active.</span>{' '}
+                <span className="text-cyan-200/90">You can log in and enjoy scheduling</span>{' '}
+                <span className="text-emerald-200/90">in SmartCalender.</span>
+              </p>
+            ) : (
+              <p className="text-sm sm:text-base max-w-3xl mx-auto leading-relaxed">
+                <span className="text-gray-300">Your subscription is active.</span>{' '}
+                <span className="text-cyan-200/90">You can log in and enjoy scheduling</span>{' '}
+                <span className="text-emerald-200/90">in SmartCalender.</span>
+              </p>
+            )}
           </div>
 
           {/* Platform cards */}
@@ -218,12 +238,9 @@ export default function Download() {
 
           {/* Trial + next steps */}
           <div className="flex flex-col items-center gap-3 text-center text-xs text-gray-400 mb-6">
-            <p>
-              You&apos;re good to go. First month is $1, then renewals are $2/month.
-            </p>
             <p className="text-[11px] text-gray-500">
-              Next step: open DesktopHab and sign in with the email you used to create your account.
-              If the app is not installed yet, download your platform build above.
+              Next step: open SmartCalender and sign in with the email you used to create your account.
+              If you haven&apos;t yet, download your platform build above, install it, then sign in.
             </p>
           </div>
 
