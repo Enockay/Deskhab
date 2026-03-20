@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     PAYSTACK_PUBLIC_KEY: str | None = None
     PAYSTACK_CALLBACK_URL: str | None = None
 
+    # Google OAuth (web sign-in)
+    GOOGLE_CLIENT_ID: str | None = None
+
     # Admin
     ADMIN_SECRET_KEY: str
     FIRST_ADMIN_EMAIL: str = "admin@desktophab.com"

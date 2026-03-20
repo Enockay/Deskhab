@@ -38,6 +38,12 @@ export const authApi = {
       body: JSON.stringify({ email, code }),
     })
   },
+  async googleSetPassword({ id_token, password, name }) {
+    return apiFetch('/v1/auth/google/set-password', {
+      method: 'POST',
+      body: JSON.stringify({ id_token, password, name }),
+    })
+  },
   async emailStatus(email) {
     return apiFetch(`/v1/auth/email-status?email=${encodeURIComponent(email)}`)
   },

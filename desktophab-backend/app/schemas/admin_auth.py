@@ -8,7 +8,6 @@ class AdminLoginRequest(BaseModel):
     password: str = Field(..., min_length=6, max_length=256)
     remember_me: bool = False
 
-
 class AdminAuthResponse(BaseModel):
     admin_id: int
     email: EmailStr

@@ -1,10 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
+import httpx
 
 from datetime import datetime, timezone
 
-from app.schemas.auth import LoginRequest, RegisterRequest, AuthResponse, VerifyEmailRequest
+from app.schemas.auth import (
+    LoginRequest,
+    RegisterRequest,
+    AuthResponse,
+    VerifyEmailRequest,
+    GoogleSetPasswordRequest,
+)
 from app.schemas.me import MeResponse
 from app.services.email import send_verification_email, send_post_verification_login_email
 from app.core.config import settings
@@ -26,6 +33,45 @@ router = APIRouter()
 async def get_db() -> AsyncSession:
     async with AsyncSessionLocal() as session:
         yield session
+
+
+async def _ensure_smartcalender_trial(db: AsyncSession, user: User) -> None:
+    app_res = await db.execute(select(App).where(App.slug == "smartcalender"))
+    app = app_res.scalar_one_or_none()
+    if not app:
+        app = App(
+            slug="smartcalender",
+            name="SmartCalender",
+            monthly_price_usd=2.00,
+            trial_days=5,
+            is_active=True,
+        )
+        db.add(app)
+        await db.flush()
+
+    sub_res = await db.execute(
+        select(Subscription).where(
+            Subscription.user_id == user.id,
+            Subscription.app_id == app.id,
+        )
+    )
+    sub = sub_res.scalar_one_or_none()
+    if not sub:
+        from datetime import timedelta
+
+        now = datetime.now(timezone.utc)
+        trial_end = now + timedelta(days=max(1, int(app.trial_days or 5)))
+        sub = Subscription(
+            user_id=user.id,
+            app_id=app.id,
+            tier=SubscriptionTier.premium,
+            status=SubscriptionStatus.trial,
+            features=["all_views", "tasks_board", "reminders", "advanced_reminders"],
+            trial_ends_at=trial_end,
+            current_period_start=now,
+            current_period_end=trial_end,
+        )
+        db.add(sub)
 
 
 @router.post("/auth/login", response_model=AuthResponse)
@@ -217,42 +263,7 @@ async def verify_email(payload: VerifyEmailRequest, db: AsyncSession = Depends(g
     if existing_user:
         existing_user.is_email_verified = True
         # Start user with a 5-day trial (no upfront charge).
-        app_res = await db.execute(select(App).where(App.slug == "smartcalender"))
-        app = app_res.scalar_one_or_none()
-        if not app:
-            app = App(
-                slug="smartcalender",
-                name="SmartCalender",
-                monthly_price_usd=2.00,
-                trial_days=5,
-                is_active=True,
-            )
-            db.add(app)
-            await db.flush()
-
-        sub_res = await db.execute(
-            select(Subscription).where(
-                Subscription.user_id == existing_user.id,
-                Subscription.app_id == app.id,
-            )
-        )
-        sub = sub_res.scalar_one_or_none()
-        if not sub:
-            from datetime import timedelta
-
-            now = datetime.now(timezone.utc)
-            trial_end = now + timedelta(days=max(1, int(app.trial_days or 5)))
-            sub = Subscription(
-                user_id=existing_user.id,
-                app_id=app.id,
-                tier=SubscriptionTier.premium,
-                status=SubscriptionStatus.trial,
-                features=["all_views", "tasks_board", "reminders", "advanced_reminders"],
-                trial_ends_at=trial_end,
-                current_period_start=now,
-                current_period_end=trial_end,
-            )
-            db.add(sub)
+        await _ensure_smartcalender_trial(db, existing_user)
 
     await db.commit()
 
@@ -263,6 +274,69 @@ async def verify_email(payload: VerifyEmailRequest, db: AsyncSession = Depends(g
         logger.warning(f"post-verification login email failed for email={email}: {exc}")
 
     return {"success": True}
+
+
+@router.post("/auth/google/set-password")
+async def google_set_password(payload: GoogleSetPasswordRequest, db: AsyncSession = Depends(get_db)) -> dict:
+    if not settings.GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=400, detail="Backend GOOGLE_CLIENT_ID is not configured")
+
+    # Verify Google ID token server-side.
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                "https://oauth2.googleapis.com/tokeninfo",
+                params={"id_token": payload.id_token},
+            )
+    except Exception as exc:
+        logger.warning(f"google token validation request failed: {exc}")
+        raise HTTPException(status_code=502, detail="Could not validate Google token right now. Please try again.") from exc
+    if resp.status_code != 200:
+        raise HTTPException(status_code=400, detail="Invalid Google token")
+
+    token_info = resp.json()
+    aud = token_info.get("aud")
+    email = (token_info.get("email") or "").strip().lower()
+    email_verified = str(token_info.get("email_verified", "")).lower() == "true"
+    google_name = (token_info.get("name") or "").strip()
+
+    if aud != settings.GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=400, detail="Google token audience mismatch")
+    if not email or not email_verified:
+        raise HTTPException(status_code=400, detail="Google account email is not verified")
+
+    user_res = await db.execute(select(User).where(func.lower(User.email) == email))
+    user = user_res.scalar_one_or_none()
+
+    from app.core.security import hash_password
+
+    if user and user.is_email_verified and user.hashed_password:
+        raise HTTPException(status_code=409, detail="An account with this email already exists")
+
+    final_name = (payload.name or "").strip() or google_name or email.split("@", 1)[0]
+    if not user:
+        user = User(
+            email=email,
+            hashed_password=hash_password(payload.password),
+            name=final_name,
+            is_email_verified=True,
+        )
+        db.add(user)
+        await db.flush()
+    else:
+        user.hashed_password = hash_password(payload.password)
+        user.name = user.name or final_name
+        user.is_email_verified = True
+
+    await _ensure_smartcalender_trial(db, user)
+    await db.commit()
+
+    try:
+        await send_post_verification_login_email(email=email)
+    except Exception as exc:
+        logger.warning(f"post-verification login email failed for google user email={email}: {exc}")
+
+    return {"success": True, "email": email}
 
 
 @router.get("/auth/email-status")

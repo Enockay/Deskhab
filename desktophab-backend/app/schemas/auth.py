@@ -33,6 +33,12 @@ class VerifyEmailRequest(BaseModel):
     code: str = Field(min_length=6, max_length=6)
 
 
+class GoogleSetPasswordRequest(BaseModel):
+    id_token: str = Field(min_length=20)
+    password: str = Field(min_length=8)
+    name: str | None = Field(default=None, max_length=128)
+
+
 # ─── Sub-objects in auth response ────────────────────────────────────────────
 
 class SubscriptionOut(BaseModel):
