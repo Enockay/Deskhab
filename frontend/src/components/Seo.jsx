@@ -2,10 +2,11 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 
 const DEFAULT_SITE_NAME = 'Deskhab'
+const DEFAULT_SITE_HANDLE = '@deskhab'
 const DEFAULT_TITLE = 'Deskhab | SmartCalender for macOS, Windows and Linux'
 const DEFAULT_DESCRIPTION =
   'Deskhab builds productivity desktop apps. SmartCalender helps teams plan meetings, tasks, and reminders across macOS, Windows, and Linux.'
-const DEFAULT_IMAGE = 'https://www.deskhab.com/favicon.svg'
+const DEFAULT_IMAGE = 'https://www.deskhab.com/deskhablogo.png'
 const SITE_URL = import.meta.env.VITE_SITE_URL || 'https://www.deskhab.com'
 
 function upsertMeta(key, attr, content) {
@@ -65,10 +66,14 @@ export default function Seo({
     upsertMeta('property', 'og:description', description)
     upsertMeta('property', 'og:url', canonicalUrl)
     upsertMeta('property', 'og:image', image)
+    upsertMeta('property', 'og:image:alt', 'Deskhab logo')
+    upsertMeta('property', 'og:locale', 'en_US')
     upsertMeta('name', 'twitter:card', 'summary_large_image')
+    upsertMeta('name', 'twitter:site', DEFAULT_SITE_HANDLE)
     upsertMeta('name', 'twitter:title', fullTitle)
     upsertMeta('name', 'twitter:description', description)
     upsertMeta('name', 'twitter:image', image)
+    upsertMeta('name', 'twitter:image:alt', 'Deskhab logo')
 
     upsertLink('canonical', canonicalUrl)
 
