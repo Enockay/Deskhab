@@ -18,6 +18,13 @@ import ResetPassword from './pages/ResetPassword'
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminAuthProvider from './context/AdminAuthContext'
+import StaticPage from './pages/StaticPage'
+import {
+  PrivacyPolicyPageContent,
+  TermsOfServicePageContent,
+  CookiePolicyPageContent,
+  SecurityPageContent,
+} from './pages/LegalPages'
 
 /* ── layout pages ─────────────────────────────────────────── */
 
@@ -68,6 +75,120 @@ function PricingPage() {
   )
 }
 
+/** Generic content pages */
+function FeaturesPage() {
+  return (
+    <Layout>
+      <Seo title="Features | Deskhab SmartCalender" description="Explore SmartCalender features for teams and individuals." canonicalPath="/features" />
+      <StaticPage title="Features" />
+    </Layout>
+  )
+}
+function HowItWorksPage() {
+  return (
+    <Layout>
+      <Seo title="How it works | Deskhab SmartCalender" description="How SmartCalender helps you plan and execute your day." canonicalPath="/how-it-works" />
+      <StaticPage title="How it works" />
+    </Layout>
+  )
+}
+function ChangelogPage() {
+  return (
+    <Layout>
+      <Seo title="Changelog | Deskhab SmartCalender" description="Product updates and release notes for SmartCalender." canonicalPath="/changelog" />
+      <StaticPage title="Changelog" />
+    </Layout>
+  )
+}
+function RoadmapPage() {
+  return (
+    <Layout>
+      <Seo title="Roadmap | Deskhab SmartCalender" description="See what's planned for SmartCalender." canonicalPath="/roadmap" />
+      <StaticPage title="Roadmap" />
+    </Layout>
+  )
+}
+function AboutPage() {
+  return (
+    <Layout>
+      <Seo title="About | Deskhab" description="Learn about Deskhab and our mission." canonicalPath="/about" />
+      <StaticPage title="About" />
+    </Layout>
+  )
+}
+function BlogPage() {
+  return (
+    <Layout>
+      <Seo title="Blog | Deskhab" description="Productivity insights and product news." canonicalPath="/blog" />
+      <StaticPage title="Blog" />
+    </Layout>
+  )
+}
+function CareersPage() {
+  return (
+    <Layout>
+      <Seo title="Careers | Deskhab" description="Open roles at Deskhab." canonicalPath="/careers" />
+      <StaticPage title="Careers" />
+    </Layout>
+  )
+}
+function PressKitPage() {
+  return (
+    <Layout>
+      <Seo title="Press kit | Deskhab" description="Brand assets and media resources." canonicalPath="/press-kit" />
+      <StaticPage title="Press kit" />
+    </Layout>
+  )
+}
+function DocsPage() {
+  return (
+    <Layout>
+      <Seo title="Documentation | Deskhab" description="Guides for using Deskhab and SmartCalender." canonicalPath="/docs" />
+      <StaticPage title="Documentation" />
+    </Layout>
+  )
+}
+function ApiPage() {
+  return (
+    <Layout>
+      <Seo title="API Reference | Deskhab" description="Deskhab API reference." canonicalPath="/api" />
+      <StaticPage title="API Reference" />
+    </Layout>
+  )
+}
+function PrivacyPage() {
+  return (
+    <Layout>
+      <Seo title="Privacy Policy | Deskhab" description="How we handle your data." canonicalPath="/privacy" />
+      <PrivacyPolicyPageContent />
+    </Layout>
+  )
+}
+function TermsPage() {
+  return (
+    <Layout>
+      <Seo title="Terms of Service | Deskhab" description="The terms you agree to when using Deskhab." canonicalPath="/terms" />
+      <TermsOfServicePageContent />
+    </Layout>
+  )
+}
+function CookiesPage() {
+  return (
+    <Layout>
+      <Seo title="Cookie Policy | Deskhab" description="How we use cookies and similar tech." canonicalPath="/cookies" />
+      <CookiePolicyPageContent />
+    </Layout>
+  )
+}
+function SecurityPage() {
+  return (
+    <Layout>
+      <Seo title="Security | Deskhab" description="Our approach to keeping your data secure." canonicalPath="/security" />
+      <SecurityPageContent />
+    </Layout>
+  )
+}
+
 /* ── root layout (header + footer wrapping) ─────────────────── */
 function Layout({ children }) {
   return (
@@ -87,6 +208,20 @@ export default function App() {
         {/* Main site with header + footer */}
         <Route path="/" element={<Layout><HomePage /></Layout>} />
         <Route path="/pricing" element={<Layout><PricingPage /></Layout>} />
+        <Route path="/features" element={<FeaturesPage />} />
+        <Route path="/how-it-works" element={<HowItWorksPage />} />
+        <Route path="/changelog" element={<ChangelogPage />} />
+        <Route path="/roadmap" element={<RoadmapPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/careers" element={<CareersPage />} />
+        <Route path="/press-kit" element={<PressKitPage />} />
+        <Route path="/docs" element={<DocsPage />} />
+        <Route path="/api" element={<ApiPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/cookies" element={<CookiesPage />} />
+        <Route path="/security" element={<SecurityPage />} />
 
         {/* Full-screen auth / checkout pages (no header/footer) */}
         <Route path="/create-account" element={<><Seo title="Create Account" description="Create your Deskhab account to access SmartCalender for desktop." canonicalPath="/create-account" noindex /><CreateAccount /></>} />
